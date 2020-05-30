@@ -43,6 +43,14 @@
  :aliases {:clj-tests    {:extra-paths ["src/test"]
                           :main-opts   ["-m" "kaocha.runner"]
                           :extra-deps  {lambdaisland/kaocha {:mvn/version "0.0-529"}}}
+           :jar {:extra-deps {seancorfield/depstar {:mvn/version "1.0.94"}}
+                 :main-opts ["-m" "hf.depstar.jar" "dv.clj-utils.jar"]}
+
+           :install {:extra-deps {deps-deploy {:mvn/version "0.0.9"}}
+                     :main-opts ["-m" "deps-deploy.deps-deploy" "install" "dv.clj-utils.jar"]}
+
+           :deploy {:extra-deps {deps-deploy {:mvn/version "0.0.9"}}
+                    :main-opts ["-m" "deps-deploy.deps-deploy" "deploy" "dv.clj-utils.jar"]}
 
            :dev          {:extra-paths ["src/test" "src/dev" "src/workspaces"]
                           :jvm-opts    ["-XX:-OmitStackTraceInFastThrow"]
@@ -59,5 +67,5 @@
                                         expound                             {:mvn/version "0.8.4"}
                                         fulcrologic/fulcro-spec             {:mvn/version "3.1.4"}
                                         binaryage/devtools                  {:mvn/version "0.9.10"}
-                                        com.github.awkay/workspaces         {:mvn/version "1.0.0-RC3"},
+                                        com.github.awkay/workspaces         {:mvn/version "1.0.0-RC3"}
                                         org.clojure/tools.namespace         {:mvn/version "1.0.0"}}}}}
