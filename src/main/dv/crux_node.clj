@@ -18,5 +18,5 @@
    :crux.standalone/event-log-sync?    true
    :crux.kv/sync?                      true})
 
-(defn start-crux-rocks-node ^ICruxAPI [storage-dir]
-  (crux/start-node (rocks-config storage-dir)))
+(defn start-crux-rocks-node ^ICruxAPI [data-dir]
+  (crux/start-node (rocks-config data-dir)))

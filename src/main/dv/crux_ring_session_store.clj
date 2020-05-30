@@ -12,7 +12,8 @@
 ;; Crux doesn't support strings as keys and pedestal csrf lib doesn't support
 ;; configuring the key, so we replace the string with a keyword.
 
-(defn make-session-data [key data]
+(defn make-session-data
+  [key data]
   (-> data
     (assoc :__anti-forgery-token (get data anti-forgery-token-str))
     (dissoc anti-forgery-token-str)
@@ -39,9 +40,9 @@
                        (catch Exception e (UUID/randomUUID)))
           key     (or key (u/uuid))
           tx-data (make-session-data key data)]
-      ;(log/info "Writing session data: " tx-data)
+      (log/trace "Writing session data: " tx-data)
+      (log/trace "At key : " key)
       (cutil/put crux-node tx-data)
-      ;(log/info "Read session: " (cutil/entity key))
       key))
 
   (delete-session [_ key]
@@ -51,4 +52,3 @@
 
 (defn crux-session-store [crux-node]
   (CruxSessionStore. crux-node))
-

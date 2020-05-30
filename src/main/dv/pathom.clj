@@ -43,11 +43,7 @@
   (println)
   req)
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Our resolvers
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;; Captures the last env so you can inspect it
+;; Captures the last env so you can inspect it at the repl
 (def -env (atom nil))
 (comment
   (keys @-env)
@@ -56,17 +52,14 @@
   (@-env ::p/entity-key)
   (@-env ::p/entity))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Actual parser
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;; todo need to add extension point here
-(defn mk-augment-env-request [get-config-map]
+(defn mk-augment-env-request
+  [get-config-map]
   (fn augment-env-request
     [env]
     (reset! -env env)
     (merge env (get-config-map env))))
 
+;; Copied from fulcro-rad, but changed to also pass pararms for mutations.
 (def query-params-to-env-plugin
   "Adds top-level load params to env, so nested parsing layers can see them."
   {::p/wrap-parser
@@ -88,6 +81,7 @@
 ;; deals with removing keys and logging responses etc.
 
 (defn build-parser [{:keys [resolvers log-responses? enable-pathom-viz? env-additions]}]
+  (when-not (fn? env-additions) (throw (Exception. "env-additions must be a function.")))
   (let [real-parser (p/parallel-parser
                       {::p/mutate  pc/mutate-async
                        ::p/env     {::p/reader               [p/map-reader
@@ -104,7 +98,7 @@
                                     ;p/trace-plugin
                                     ]})
         ;; NOTE: Add -Dtrace to the server JVM to enable Fulcro Inspect query performance traces to the network tab.
-        ;; Understand that this makes the network responses much larger and should not be used in production.
+        ;; This makes the network responses much larger and should not be used in production.
         trace?      (not (nil? (System/getProperty "trace")))
         real-parser (cond->> real-parser
                       enable-pathom-viz?

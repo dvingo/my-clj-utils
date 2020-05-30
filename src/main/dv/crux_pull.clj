@@ -5,10 +5,6 @@
     [taoensso.timbre :as log])
   (:import [datascript.pull_parser PullSpec]))
 
-;; todo update to use db instead of node so this works for time travel
-(def crux-entity)
-;(defn crux-entity [id] (crux/entity (crux/db crux-node) id))
-
 (defn- into!
   [transient-coll items]
   (reduce conj! transient-coll items))
@@ -138,13 +134,13 @@
         (cond
           (contains? opts :subpattern)
           (->> (subpattern-frame (:subpattern opts)
-                 (mapv crux-entity found)
+                 (mapv #(crux/entity db %) found)
                  multi? attr-key)
             (conj frames parent))
 
           (contains? opts :recursion)
           (recurse-attr db attr-key multi?
-            (mapv crux-entity found)
+            (mapv #(crux/entity db %) found)
             eid parent frames)
 
           (and component? forward?)
@@ -166,8 +162,9 @@
         (conj frames)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; uses db
+;; todo reverse attrs
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (defn- pull-attr
   [db spec eid frames]
   (log/info "---------pull-attr " spec " eid: " eid)
@@ -313,23 +310,22 @@
 (defn entity-with-prop
   "Get an entity that has a property with value. copied from crux site
   (entity-with-prop [:email \"myaddress@addres.com\"])"
-  ([eid] (entity-with-prop crux-node eid))
-  ([crux-node eid]
+  [db eid]
    (when eid
-     (let [db (crux/db crux-node)]
+     (let [db ]
        (if (vector? eid)
          (let [[attr value] eid]
-           (recur crux-node (entity-for-prop db [attr value])))
-         (crux/entity db eid))))))
+           (recur db (entity-for-prop db [attr value])))
+         (crux/entity db eid)))))
 
-(defn start-entity [e]
+(defn start-entity [db e]
   (if (vector? e)
-    (entity-with-prop e)
-    (crux-entity e)))
+    (entity-with-prop db e)
+    (crux/entity db e)))
 
 (defn pull-spec
   [db pattern eids multi?]
-  (let [eids (into [] (map start-entity) eids)]
+  (let [eids (into [] (map (partial start-entity db)) eids)]
     (pull-pattern db (list (initial-frame pattern eids multi?)))))
 
 (defn pull [db selector eid]
@@ -338,41 +334,40 @@
 (defn pull-many [db selector eids]
   (pull-spec db (dpp/parse-pull selector) eids true))
 
-(comment
-  (pull crux-node [:task/description] :dan-test1)
-
-  (dpp/parse-pull [:task/description])
-  (initial-frame (dpp/parse-pull [:task/description]) [{}] false)
-  (subpattern-frame (dpp/parse-pull [:task/description]) [{}] false :task/description)
-  (dpp/parse-pull [:task/description])
-  (dpp/parse-pull [{:user/habits [:task/id :task/description]} :user/id])
-
-  (dpp/parse-pull [:name {:children 1}])
-  (dpp/parse-pull ['*])
-  (dpp/parse-pull [{:user/habits ['*]} :user/id])
-  (dpp/parse-pull [:name {:children '...}])
-  (dpp/parse-pull [{:hi [:prop-a]} :prop-b])
-  (dpp/parse-pull [{:hi [:prop-a]} :prop-b])
-
-  (pull crux-node [:name {:children 1}] :task-1)
-  (pull crux-node [[:name :as :other] {[:children :limit 2] '...}] :task-1)
-
-  (crux-entity :dan-test1)
-  (pull crux-node [:user/id :user/password {:user/tasks ['*]}] :dan-test1)
-  (pull crux-node [:user/id :user/password {:user/tasks [:task/description]}] :dan-test1)
-
-  (pull crux-node [[:user/id :as :hi]
-                   {[:user/habits :limit 1]
-                    [[:habit/schedule2 :default 10]
-                     {:habit/task [[:task/description :as :diff]]}]}]
-    #uuid"8d5a0a66-e98f-43ff-8803-e411073d0880")
-
-  (pull crux-node [[:user/id :as :hi]
-                   {:user/habits [[:habit/schedule2 :default 10]
-                                  {:habit/task [[:task/description :as :diff]]}]
-                    }] #uuid"8d5a0a66-e98f-43ff-8803-e411073d0880")
-
-  (pull crux-node [:user/email :user/tasks] [:user/email "abc@abc.com"])
-  (pull crux-node [:user/id [:user/id2 :default :hi]] #uuid"8d5a0a66-e98f-43ff-8803-e411073d0880")
-  )
-
+; (comment
+;   (pull crux-node [:task/description] :dan-test1)
+;
+;   (dpp/parse-pull [:task/description])
+;   (initial-frame (dpp/parse-pull [:task/description]) [{}] false)
+;   (subpattern-frame (dpp/parse-pull [:task/description]) [{}] false :task/description)
+;   (dpp/parse-pull [:task/description])
+;   (dpp/parse-pull [{:user/habits [:task/id :task/description]} :user/id])
+;
+;   (dpp/parse-pull [:name {:children 1}])
+;   (dpp/parse-pull ['*])
+;   (dpp/parse-pull [{:user/habits ['*]} :user/id])
+;   (dpp/parse-pull [:name {:children '...}])
+;   (dpp/parse-pull [{:hi [:prop-a]} :prop-b])
+;   (dpp/parse-pull [{:hi [:prop-a]} :prop-b])
+;
+;   (pull crux-node [:name {:children 1}] :task-1)
+;   (pull crux-node [[:name :as :other] {[:children :limit 2] '...}] :task-1)
+;
+;   (crux/entity db :dan-test1)
+;   (pull crux-node [:user/id :user/password {:user/tasks ['*]}] :dan-test1)
+;   (pull crux-node [:user/id :user/password {:user/tasks [:task/description]}] :dan-test1)
+;
+;   (pull crux-node [[:user/id :as :hi]
+;                    {[:user/habits :limit 1]
+;                     [[:habit/schedule2 :default 10]
+;                      {:habit/task [[:task/description :as :diff]]}]}]
+;     #uuid"8d5a0a66-e98f-43ff-8803-e411073d0880")
+;
+;   (pull crux-node [[:user/id :as :hi]
+;                    {:user/habits [[:habit/schedule2 :default 10]
+;                                   {:habit/task [[:task/description :as :diff]]}]
+;                     }] #uuid"8d5a0a66-e98f-43ff-8803-e411073d0880")
+;
+;   (pull crux-node [:user/email :user/tasks] [:user/email "abc@abc.com"])
+;   (pull crux-node [:user/id [:user/id2 :default :hi]] #uuid"8d5a0a66-e98f-43ff-8803-e411073d0880")
+;   )

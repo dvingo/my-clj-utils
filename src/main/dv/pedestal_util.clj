@@ -1,3 +1,5 @@
+;; todo this isn't fully baked yet.
+
 (ns dv.pedestal-util
   (:require
     [clojure.pprint :refer [pprint]]

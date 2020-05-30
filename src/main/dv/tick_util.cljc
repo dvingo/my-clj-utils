@@ -1097,5 +1097,3 @@
   (type (offset 1 :days))
   (format-period (t/new-period 3 :days))
   (format-period (t/new-period 3 :years)))
-
-

@@ -13,9 +13,8 @@
 (defn id? [id]
   (or (keyword? id) (uuid? id)))
 
-;; I'm thinking you'd (binding [*crux-node*] in the web request layer
-;; in middleware or interceptor then it should be available without needing
-;; to wire it through the call stack
+;; This is to support not having to wire the crux-node through the web request
+;; call stack - you can bind it once higher up the call stack.
 (def ^:dynamic *crux-node*)
 
 (defn crux-node? [n] (instance? ICruxAPI n))

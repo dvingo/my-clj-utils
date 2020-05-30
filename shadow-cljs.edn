@@ -1,23 +1,7 @@
+;; todo
 {:deps   {:aliases [:dev]}
  :nrepl  {:port 9000}
- :builds {:main        {:target     :browser
-                        :output-dir "resources/public/js/main"
-                        :asset-path "/js/main"
-                        :modules    {:main {:init-fn matterandvoid/init
-                                            :entries [matterandvoid.client-entry]}}
-                        ;; guardrails checks only during dev
-                        :dev        {:compiler-options {:external-config {:guardrails {}}}}
-
-                        :devtools   {:after-load matterandvoid.client-entry/refresh
-                                     :preloads   [com.fulcrologic.fulcro.inspect.websocket-preload
-                                                  matterandvoid.client.development-preload]}}
-
-          :node-server {:target    :node-script
-                        :main      node-server.server/main
-                        :output-to "target/node-server.js"
-                        :devtools  {:before-load-async node-server.server/stop
-                                    :after-load        node-server.server/start}}
-
+ :builds {
           :test        {:target           :browser-test
                         :test-dir         "resources/public/js/test"
                         :ns-regexp        "-test$"
@@ -32,15 +16,4 @@
                         :js-options       {:js-provider :shadow}
                         :compiler-options {:static-fns false} ; required for mocking to work
                         :output-to        "target/ci.js"
-                        :ns-regexp        "-test$"}
-
-          :workspaces  {:target     :browser
-                        :modules    {:main {:entries [app.demo-ws]
-                                            :init-fn app.demo-ws/main}}
-                        :ns-regexp  "-(test|ws)$"
-                        :output-dir "resources/public/workspaces/js"
-                        :asset-path "/workspaces/js"
-                        :devtools   {:preloads           [com.fulcrologic.fulcro.inspect.preload]
-                                     :http-root          "resources/public/workspaces"
-                                     :http-port          8023
-                                     :http-resource-root "."}}}}
+                        :ns-regexp        "-test$"}}}
