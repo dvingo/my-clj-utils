@@ -6,7 +6,7 @@
   <version>2020-05-30</version>
   <name>clj-utils</name>
   <description>My helpers and additions</description>
-  <url>https://github.com/dvingo/dv.my-clj-utils</url>
+  <url>https://github.com/dvingo/my-clj-utils</url>
   <licenses>
     <license>
       <name>MIT</name>
@@ -19,7 +19,7 @@
     </developer>
   </developers>
   <scm>
-    <url>https://github.com/dvingo/dv.my-clj-utils</url>
+    <url>https://github.com/dvingo/my-clj-utils</url>
     <connection>scm:git:git://github.com/dvingo/my-clj-utils.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/dvingo/my-clj-utils.git</developerConnection>
     <tag>HEAD</tag>
