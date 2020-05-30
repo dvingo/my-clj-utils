@@ -817,7 +817,6 @@
     (def in (ByteArrayInputStream. (.toByteArray out)))
 
     (def date-reader (tr/reader in :json {:handlers tick-transit-reader}))
-    (println "PRINTLN")
     (def v (tr/read date-reader))
     v
     )
@@ -826,7 +825,7 @@
     #:user{:habits [#:habit{:id #uuid"9069a8ef-88c6-41fd-9cca-b09bd6fe2f9a", :task-id {}}
                     #:habit{:id #uuid"cf574926-40dc-4ea9-aeff-97f1077e5365", :task-id {}}
                     #:habit{:active?         true,
-                            :description     "Drink 3 liters of water",
+                            :description     "Something to do",
                             :schedule        nil,
                             :task            #:task{:description nil :id :task-dishes},
                             starts-on        #time/date-time"2020-05-03T00:00",
@@ -835,8 +834,7 @@
                             :user-scheduled? false,
                             :duration        nil,
                             :id              #uuid"0ca3642e-a27a-4b5f-b056-5206ac18ca9c",
-                            :criteria-num    2}]}
-    )
+                            :criteria-num    2}]})
   (write-tr my-data)
   (do
     (def out (ByteArrayOutputStream. 4096))
@@ -857,61 +855,13 @@
   (tr/read date-reader (tr/write date-writer (t/today)))
   (tr/read date-reader (tr/write date-writer (t/now)))
   (tr/read date-reader (tr/write date-writer (t/new-period 1 :days)))
-
-
-  (def
-    my-da
-    "[\"~#cmap\",[[\"~:habit/id\",\"~u0ca3642e-a27a-4b5f-b056-5206ac18ca9c\"],[\"^ \",\"~:habit/starts-on\",[\"~#time/tick\",\"#time/date \\\"2020-05-03\\\"\"],\"~:habit/task-id\",[\"^ \",\"~:task/description\",null]]]]"
-    )
-  (tr/read date-reader my-da)
-  (def date-reader (tr/reader :json {:handlers {transit-tag #(cljs.reader/read-string %)}}))
-  (tr/read date-reader
-    "[\"^ \",\"~:user/habits\",[[\"^ \",\"~:habit/id\",\"~u9069a8ef-88c6-41fd-9cca-b09bd6fe2f9a\",\"~:habit/task-id\",[\"^ \"]],[\"^ \",\"^1\",\"~ucf574926-40dc-4ea9-aeff-97f1077e5365\",\"^2\",[\"^ \"]],[\"^ \",\"^1\",\"~u0ca3642e-a27a-4b5f-b056-5206ac18ca9c\",\"~:habit/user-scheduled?\",false,\"~:habit/duration\",null,\"~:habit/criteria-num\",2,\"~:habit/description\",\"Drink 3 liters of water\",\"~:habit/active?\",true,\"~:habit/starts-on\",[\"~#time/tick\",\"#time/date \\\"2020-05-03\\\"\"],\"^2\",[\"^ \",\"~:task/description\",null],\"~:habit/repeats-every\",[\"^9\",\"#time/period \\\"P1D\\\"\"],\"~:habit/schedule\",null,\"~:habit/criteria\",\"~:exactly\"]]]"
-    )
-  (tr/read
-    date-reader
-    "[\"^ \",\"~:user/habits\",[[\"^ \",\"~:habit/id\",\"~u9069a8ef-88c6-41fd-9cca-b09bd6fe2f9a\",\"~:habit/task-id\",[\"^ \"]],[\"^ \",\"^1\",\"~ucf574926-40dc-4ea9-aeff-97f1077e5365\",\"^2\",[\"^ \"]],[\"^ \",\"^1\",\"~u0ca3642e-a27a-4b5f-b056-5206ac18ca9c\",\"~:habit/user-scheduled?\",false,\"~:habit/duration\",null,\"~:habit/criteria-num\",2,\"~:habit/description\",\"Drink 3 liters of water\",\"~:habit/active?\",true,\"~:habit/starts-on\",[\"~#time/tick\",\"#time/date \\\"2020-05-03\\\"\"],\"^2\",[\"^ \",\"~:task/description\",null,\"~:task/id\",\"~:task-dishes\"],\"~:habit/repeats-every\",[\"^9\",\"#time/period \\\"P1D\\\"\"],\"~:habit/schedule\",null,\"~:habit/criteria\",\"~:exactly\"]]]"
-    )
-
   (def w (tr/writer :json))
   (tr/write w (js/Date.))
-  (tr/write w (js/Date))
   (do
     (def w (tr/writer :json))
     (def r (tr/reader :json))
     (tr/read r (tr/write w (t/today))))
-
-  ;; breaks
-  ;; when try to read this the fulcro inspector blows up.
-  (tr/write date-writer {:user/habit-records
-                         [{:habit-record/task-records
-
-                           [{:task-record/date #time/date "2020-05-19"}]}]})
-
-  (tr/write date-writer #time/date "2020-05-19")
-
-  ;;works when reading via inspect
-  (tr/write date-writer {:user/habit-records
-                         [{:habit-record/task-records
-                           [{:task-record/id #uuid "61ded25b-31ca-4037-bf71-15dd7c4dc9de"}]}]})
-
-  (deftype DefaultHandler []
-    Object
-    (tag [this v] "unknown")
-    (rep [this v] (pr-str v)))
-
-  (def write-handlers {:default (DefaultHandler.)}
-    (defn write [x]
-      (let [writer (ft/writer {:handlers write-handlers})]
-        (tr/write writer x))))
-
-  ;; testing
-  (defrecord Rational [numerator denominator])
-
-  (write (Rational. 2 3))
-  (def w (tr/writer :json))
-  (tr/write w (Rational. 2 3))
-  )
+  (tr/write date-writer #time/date "2020-05-19"))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
@@ -1039,6 +989,7 @@
 (defn format-duration
   [du]
   (let [seconds (t/seconds du)
+  ;; todo do all minutes have 60 seconds? probably not
         minutes (Math/floor (/ seconds 60))
         remain  (- seconds (* minutes 60))
         secs    [remain (if (= 1 remain) "second" "seconds")]
@@ -1056,10 +1007,8 @@
 
   )
 
-;(duration 3 :minutes 4 :seconds)
-
 (defn period->map
-  "Takes an period of time and breaks it down into units."
+  "Takes a period of time and breaks it down into units."
   [p]
   {:days   (t/days p)
    :months (t/months p)
@@ -1082,7 +1031,7 @@
   (cond
     (offset? x)
     (do
-      (log/info "offfset " x)
+      (log/info "offset " x)
       (str
         (when (:period x) (format-period (:period x)))
         (when (:duration x) (format-duration (:duration x)))))
