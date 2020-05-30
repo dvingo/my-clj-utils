@@ -184,20 +184,15 @@
                         :desc {:with-docs? false})]
     (-> (iterator-seq history) first :crux.tx/tx-time)))
 
-(comment (get-doc-created-at crux-node #uuid "b64302cc-33f9-44d7-a76b-b6405934ca57")
-  (get-doc-updated-at crux-node #uuid "b64302cc-33f9-44d7-a76b-b6405934ca57")
-  (crux/entity-history (crux/db crux-node) #uuid "b64302cc-33f9-44d7-a76b-b6405934ca57"
-    :desc))
-
 (>defn get-timestamps
   "use history api to get
   last update time and creation time for an entity.
   for an entity: nilable: {:db/updated-at last tx-time :db/created-at first tx-time}"
   ([id]
-   [u/id? => ::tx-timestamps]
+   [id? => ::tx-timestamps]
    (get-timestamps *crux-node* id))
   ([crux-node id]
-   [crux-node? u/id? => ::tx-timestamps]
+   [crux-node? id? => ::tx-timestamps]
    (let [created-at (get-doc-created-at crux-node id)
          updated-at (get-doc-updated-at crux-node id)]
      (when (and updated-at created-at)
@@ -254,7 +249,7 @@
   with the field name as key and val as the id itself, as required for pathom
   to process a join."
   [field-tuples id]
-  [(s/coll-of (s/tuple qualified-keyword? qualified-keyword?) :type vector?) u/id? => map?]
+  [(s/coll-of (s/tuple qualified-keyword? qualified-keyword?) :type vector?) id? => map?]
   (let [ent (domain-entity id)]
     (reduce
       (fn [ent [prop id-kw]]
@@ -366,5 +361,4 @@
              :crux.db/id)))
     put-all))
 
-(comment
-  (migrate-attr :habit/start-at :habit/starts-on tu/->date))
+;(comment (migrate-attr :habit/start-at :habit/starts-on tu/->date))

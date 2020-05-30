@@ -10,9 +10,7 @@
            com.wsscode/pathom-viz-connector    {:mvn/version "1.0.2"}
 
            com.fulcrologic/fulcro              {:mvn/version "3.2.3"}
-           com.fulcrologic/semantic-ui-wrapper {:mvn/version "1.0.1"}
            com.fulcrologic/guardrails          {:mvn/version "0.0.12"}
-           hiccup                              {:mvn/version "1.0.5"}
            tick                                {:mvn/version "0.4.23-alpha"}
            ;; Needed for tick in cljs
            thheller/shadow-cljsjs              {:mvn/version "0.0.21"}
