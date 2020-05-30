@@ -28,8 +28,13 @@
            ring/ring-defaults                  {:mvn/version "0.3.2"}
 
            ;; Crux
-           juxt/crux-core                      {:mvn/version "20.04-1.8.1-alpha"}
-           juxt/crux-rocksdb                   {:mvn/version "20.04-1.8.1-alpha"}
+
+           ;; Crux
+           juxt/crux-core                      {:mvn/version "20.05-1.8.4-alpha"}
+           juxt/crux-rocksdb                   {:mvn/version "20.05-1.8.4-alpha"}
+           juxt/crux-metrics                   {:mvn/version "20.05-1.8.4-alpha"}
+           ;juxt/crux-http-server               {:mvn/version "20.05-1.8.4-alpha"}
+
 
            ;; Pull api parsing
            datascript                          {:mvn/version "0.18.11"}
