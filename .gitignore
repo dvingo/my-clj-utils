@@ -22,7 +22,6 @@ compiled
 lib
 node_modules
 out
-pom.xml
 resources/private/js
 resources/public/js
 target
