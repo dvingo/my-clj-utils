@@ -19,7 +19,7 @@
     [reitit.http.interceptors.muuntaja :as muuntaja]
     [reitit.http.interceptors.parameters :as parameters]
     [reitit.pedestal :as rpedestal]
-    [space.matterandvoid.server.crux-node :refer [crux-node]]
+    [dv.crux-node :refer [crux-node]]
     [dv.tick-util :as tu]
     [space.matterandvoid.server.config :refer [config]]
     [dv.crux-ring-session-store :refer [crux-session-store]]

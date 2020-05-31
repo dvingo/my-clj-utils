@@ -7,7 +7,6 @@
     [com.wsscode.pathom.connect :as pc]
     [com.wsscode.pathom.core :as p]
     [com.wsscode.pathom.viz.ws-connector.core :as pathom-viz]
-    [dv.crux-util :refer [*crux-node*]]
     [edn-query-language.core :as eql]
     [mount.core :refer [defstate]]
     [taoensso.timbre :as log]

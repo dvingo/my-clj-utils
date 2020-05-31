@@ -5,20 +5,21 @@
     [com.fulcrologic.guardrails.core :refer [>defn >def | => ?]]
     [crux.api :as crux]
     [crux.backup :as backup]
+    [dv.crux-node :refer [crux-node]]
     [taoensso.timbre :as log])
   (:import [java.util Date]
            [java.util UUID]
            [crux.api ICruxDatasource ICruxAPI]))
 
+;; This is to support not having to wire the crux-node through the web request
+;; call stack - you can bind it once higher up the call stack.
+;(def ^:dynamic *crux-node* crux-node)
+
 (defn id? [id]
   (or (keyword? id) (uuid? id)))
 
-;; This is to support not having to wire the crux-node through the web request
-;; call stack - you can bind it once higher up the call stack.
-(def ^:dynamic *crux-node*)
-
 (defn crux-node? [n] (instance? ICruxAPI n))
-(comment (crux-node? *crux-node*))
+(comment (crux-node? crux-node))
 
 ;; show all attributes in the node
 (comment (crux/attribute-stats crux-node))
@@ -32,14 +33,14 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn put-async
-  ([data] (put-async *crux-node* data))
+  ([data] (put-async crux-node data))
   ([crux-node data]
    (let [data (dissoc data :db/created-at :db/updated-at)]
      (log/info "Transacting data: " data)
      (crux/submit-tx crux-node [[:crux.tx/put data]]))))
 
 (defn put
-  ([data] (put *crux-node* data))
+  ([data] (put crux-node data))
   ([crux-node doc]
    (crux/await-tx crux-node (put-async crux-node doc))))
 
@@ -55,12 +56,12 @@
     (mapv #(vector :crux.tx/put (dissoc % :db/created-at :db/updated-at)) docs)))
 
 (comment
-  (put-all-async *crux-node* [{:crux.db/id :first-test :name :hi}]))
+  (put-all-async crux-node [{:crux.db/id :first-test :name :hi}]))
 
 (>defn put-all
   ([docs]
    [::vec-of-docs => ::crux-tx-return]
-   (put-all *crux-node* docs))
+   (put-all crux-node docs))
   ([crux-node docs]
    [crux-node? ::vec-of-docs => ::crux-tx-return]
    (crux/await-tx crux-node (put-all-async crux-node docs))))
@@ -75,13 +76,13 @@
 (defn insert-entity
   "uses id-kw - keyword to get an id val for this entity to add crux.db/id to insert"
   ([id-kw e]
-   (insert-entity *crux-node* id-kw e))
+   (insert-entity crux-node id-kw e))
   ([crux-node id-kw e]
    (put crux-node (assoc-crux-id id-kw e))))
 
 (defn update-entity
   ([entity-id field f]
-   (update-entity *crux-node* entity-id field f))
+   (update-entity crux-node entity-id field f))
   ([crux-node entity-id field f]
    (let [ent (crux/entity (crux/db crux-node) entity-id)
          new-val (update ent field f)]
@@ -93,7 +94,7 @@
 
 (defn q
   ([query]
-   (q *crux-node* query))
+   (q crux-node query))
   ([crux-node query] (crux/q (crux/db crux-node) query)))
 
 (defn field-kws->clauses
@@ -111,7 +112,7 @@
   makes a query find ['id 'name 'description] :where ['e :task/id 'id] etc
 
   "
-  ([fields] (crux-select *crux-node* fields))
+  ([fields] (crux-select crux-node fields))
   ([crux-node fields]
    (let [clauses (field-kws->clauses fields)
          field-names (mapv (comp symbol name) fields)
@@ -123,7 +124,7 @@
        tuples))))
 
 (defn entity-id-for-prop
-  ([v] (entity-id-for-prop (crux/db *crux-node*) v))
+  ([v] (entity-id-for-prop (crux/db crux-node) v))
   ([db [attr value]]
    (assert (.isInstance ICruxDatasource db) "You must pass a db to `entity-for-prop`")
    (ffirst (crux/q db
@@ -137,7 +138,7 @@
 (defn entity-with-prop
   "Get an entity that has a property with value. copied from crux site
   (entity-with-prop [:email \"myaddress@addres.com\"])"
-  ([eid] (entity-with-prop *crux-node* eid))
+  ([eid] (entity-with-prop crux-node eid))
   ([crux-node eid]
    (when eid
      (let [db (crux/db crux-node)]
@@ -150,7 +151,7 @@
   [eid] (some-> (entity-with-prop eid) :crux.db/id))
 
 (comment
-  (crux.api/entity (crux/db *crux-node*) "c28ca34d-bd4c-4036-8db9-8b1bc7ed2c7b")
+  (crux.api/entity (crux/db crux-node) "c28ca34d-bd4c-4036-8db9-8b1bc7ed2c7b")
   (put {:crux.db/id :test1 :val "1"})
   (entity-with-prop crux-node [:val "1"])
   (entity-id-for-prop (crux/db crux-node) [:val "1"])
@@ -166,7 +167,7 @@
   (every? entity-id-with-prop coll))
 
 (defn entity
-  ([entity-id] (entity *crux-node* entity-id))
+  ([entity-id] (entity crux-node entity-id))
   ([crux-node entity-id]
    (crux/entity (crux/db crux-node) entity-id)))
 
@@ -189,7 +190,7 @@
   for an entity: nilable: {:db/updated-at last tx-time :db/created-at first tx-time}"
   ([id]
    [id? => ::tx-timestamps]
-   (get-timestamps *crux-node* id))
+   (get-timestamps crux-node id))
   ([crux-node id]
    [crux-node? id? => ::tx-timestamps]
    (let [created-at (get-doc-created-at crux-node id)
@@ -204,8 +205,8 @@
   (get-timestamps crux-node #uuid "e0fdda94-5cfe-4062-bf2a-1cdb2521e4f9"))
 
 (defn history
-  ([id] (history *crux-node* id :desc))
-  ([id sort-order] (history *crux-node* id sort-order))
+  ([id] (history crux-node id :desc))
+  ([id sort-order] (history crux-node id sort-order))
   ([crux-node id sort-order]
    (crux/entity-history (crux/db crux-node) id sort-order
      {:with-docs? true}))
@@ -219,7 +220,7 @@
   )
 
 (defn domain-entity
-  ([id] (domain-entity *crux-node* id))
+  ([id] (domain-entity crux-node id))
   ([crux-node id]
    (merge (entity crux-node id)
      (get-timestamps crux-node id))))
@@ -265,13 +266,13 @@
 
 (defn entity-at
   [entity-id valid-time]
-  (crux/entity (crux/db *crux-node* valid-time) entity-id))
+  (crux/entity (crux/db crux-node valid-time) entity-id))
 
 (>defn read-merge-entity
   "Update an existing entity using the given map, deals with fetching the entity first. does not write"
   ([id-attr new-attrs]
    [keyword? map? => map?]
-   (read-merge-entity *crux-node* id-attr new-attrs))
+   (read-merge-entity crux-node id-attr new-attrs))
 
   ([crux-node id-attr new-attrs]
    [some? keyword? map? => map?]
@@ -292,7 +293,7 @@
   Update an existing entity using the given map, deals with fetching the entity first."
   ([entity-id new-attrs]
    {:pre [(or (vector? entity-id) (id? entity-id)) (map? new-attrs)]}
-   (merge-entity *crux-node* entity-id new-attrs (Date.)))
+   (merge-entity crux-node entity-id new-attrs (Date.)))
 
   ([crux-node entity-id new-attrs]
    {:pre [(or (vector? entity-id) (id? entity-id)) (map? new-attrs)]}
@@ -323,7 +324,7 @@
 (defn delete
   "Key is either [:some-prop \"value\"]
   or a value for crux.db/id"
-  ([key] (delete *crux-node* key))
+  ([key] (delete crux-node key))
   ([crux-node key]
    (let [key (:crux.db/id (entity-with-prop key))]
      (log/info "Deleting entity with key: " (pr-str key))
@@ -336,7 +337,7 @@
   [field]
   (dorun (map
            #(delete (field %))
-           (crux-select *crux-node* [field]))))
+           (crux-select crux-node [field]))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Data migration

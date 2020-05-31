@@ -1,7 +1,8 @@
 (ns dv.crux-node
   (:require
     [crux.api :as crux]
-    [clojure.java.io :as io])
+    [clojure.java.io :as io]
+    [mount.core :refer [defstate]])
   (:import [crux.api ICruxAPI]))
 
 (defn rocks-config [data-dir]
@@ -20,3 +21,9 @@
 
 (defn start-crux-rocks-node ^ICruxAPI [data-dir]
   (crux/start-node (rocks-config data-dir)))
+
+(comment (cn/start-crux-node "crux-store"))
+
+(defstate crux-node
+  :start (start-crux-rocks-node "crux-store")
+  :stop (.close crux-node))

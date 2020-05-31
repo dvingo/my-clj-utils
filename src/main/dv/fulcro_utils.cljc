@@ -8,3 +8,4 @@
 ;; client-side pathom indexeddb
 ;; websocket network remote
 ;; etc
+(ns dv.fulcro-utils)
