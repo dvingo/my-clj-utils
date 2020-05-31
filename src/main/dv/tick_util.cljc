@@ -918,7 +918,9 @@
 (defn format
   ([d] (format d default-format))
   ([d fmt]
-   (t/format (t/formatter fmt) (->date-time d))))
+   (if d
+     (t/format (t/formatter fmt) (->date-time d))
+     "")))
 
 (defn format-full [d] (format d full-format))
 
@@ -1020,12 +1022,14 @@
   "takes period map"
   [p]
   ;(log/info "format period: " p)
-  (if (= (:days p) 1)
-    "Tomorrow"
-    (->> (period->map p)
-      (remove #(zero? (val %)))
-      (map #(str (val %) " " (name (key %))))
-      first)))
+  (if p
+    (if (= (:days p) 1)
+      "Tomorrow"
+      (->> (period->map p)
+        (remove #(zero? (val %)))
+        (map #(str (val %) " " (name (key %))))
+        first))
+    ""))
 
 (defn format-offset [x]
   (cond
