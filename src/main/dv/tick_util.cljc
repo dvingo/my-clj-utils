@@ -949,7 +949,22 @@
   (defn years [v] (core/years v))
   )
 
-;; todo same for period
+(defn rest-minutes
+ "take a duration remove the hours and get mins remaining"
+  [duration]
+  (t/minutes
+    (t/- duration
+      (t/new-duration (t/hours duration) :hours))))
+
+;; this may be unintuitive b/c units add for more precise with this setup
+;;
+;; todo, could give back a map with successive larger values removed
+;; in the form that's intuitive => the sum of the map is the total duration time
+;; this would be mins:
+;(t/minutes (t/- duration
+;             (t/new-duration (t/hours duration) :hours)))
+
+
 (defn duration->map
   [d]
   {:nanos   (t/nanos d)
