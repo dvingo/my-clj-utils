@@ -1027,20 +1027,22 @@
 (defn period->map
   "Takes a period of time and breaks it down into units."
   [p]
-  {:days   (t/days p)
-   :months (t/months p)
-   :years  (t/years p)})
+  (when p
+    {:days   (t/days p)
+     :months (t/months p)
+     :years  (t/years p)}))
 
 (comment (period->map (t/new-period 3 :days)))
 
 (defn format-period
   "takes period map"
   [p]
-  ;(log/info "format period: " p)
-  (if p
+  (log/info "format period: " p)
+
+  (if-let [p (period->map p)]
     (if (= (:days p) 1)
-      "Tomorrow"
-      (->> (period->map p)
+      "day"
+      (->> p
         (remove #(zero? (val %)))
         (map #(str (val %) " " (name (key %))))
         first))
