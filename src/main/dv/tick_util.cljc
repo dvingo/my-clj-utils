@@ -1037,8 +1037,6 @@
 (defn format-period
   "takes period map"
   [p]
-  (log/info "format period: " p)
-
   (if-let [p (period->map p)]
     (if (= (:days p) 1)
       "day"
