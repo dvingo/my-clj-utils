@@ -19,7 +19,7 @@
   #?(:clj (:import
             [java.io ByteArrayInputStream ByteArrayOutputStream]
             [java.time Period LocalDate LocalDateTime ZonedDateTime OffsetTime Instant
-             OffsetDateTime ZoneId DayOfWeek LocalTime Month Duration Year YearMonth])))
+                       OffsetDateTime ZoneId DayOfWeek LocalTime Month Duration Year YearMonth])))
 
 (defn error [& msg]
   #?(:cljs (js/Error. (apply str msg))
@@ -108,6 +108,13 @@
    (assert (duration? duration)) (assert (period? period))
    (->Offset duration period)))
 
+(s/def ::opt-map (s/* (s/cat :k keyword? :v any?)))
+
+(def plus-period-fns
+  {:days   (fn [d v] (.plusDays d v))
+   :months (fn [d v] (.plusMonths d v))
+   :years  (fn [d v] (.plusYears d v))})
+
 ;; todo enhance to support calling with duration and periods
 
 ;; (offset 1 :days (t/new-duration 20 :minutes))
@@ -115,6 +122,7 @@
 ;; (offset (t/new-duration 20 :minutes) (t/new-period 1 :days))
 ;; etc
 ;; (offset (t/new-period 1 :days) 20 :minutes)
+
 (>defn offset
   "Offset from mix and match units of duration and period"
   ([val units]
@@ -135,6 +143,7 @@
      (when (and (nil? duration) (nil? period))
        (throw (error (str "Unknown units passed to offset: " units " and " units2))))
      (->Offset duration period))))
+
 
 (comment
   (offset 1 :days 2 :hours)
@@ -875,17 +884,21 @@
       duration (t/+ duration)
       period (t/+ period))))
 
+;; todo update to support passing duration + duration etc
 (>defn +
   "Add thing without caring about type
   time-type? duration|period|offset => time-type?"
   [d offset]
   [time-type? offset-type? => time-type?]
-  (let [d (->instant d)]
-    (if (offset? offset)
-      (add-offset d offset)
-      (t/+ d offset))))
+  (if (nil? offset)
+    d
+    (let [d (->instant d)]
+      (if (offset? offset)
+        (add-offset d offset)
+        (t/+ d offset)))))
 
 (comment
+  (reduce t/+ (t/new-duration 0 :seconds) ())
   (t/+ (today->instant) (t/new-duration 20 :minutes))
   (type (t/+ (t/today) (t/new-duration 20 :minutes)))
   (+ (t/today) (t/new-duration 20 :minutes))
@@ -915,12 +928,25 @@
 (def default-format "eee MMM dd, yyyy")
 (def full-format "eeee MMM dd, yyyy")
 
+
 (defn format
   ([d] (format d default-format))
   ([d fmt]
    (if d
      (t/format (t/formatter fmt) (->date-time d))
      "")))
+
+(defn weekday-format [d] (format d "eee MMM dd"))
+(defn weekday-format-w-time [d] (format d "eee MMM dd @ HH:mm"))
+
+(comment (weekday-format (offset-from-date (t/today) (offset 2 :days))))
+(comment
+  (offset-from-date (t/today) (offset 2 :days))
+  (make-offset
+    (duration 16 :hours 15 :minutes)
+    (t/new-period 2 :days)
+    )
+  )
 
 (defn format-full [d] (format d full-format))
 
@@ -950,7 +976,7 @@
   )
 
 (defn rest-minutes
- "take a duration remove the hours and get mins remaining"
+  "take a duration remove the hours and get mins remaining"
   [duration]
   (t/minutes
     (t/- duration
@@ -987,6 +1013,10 @@
 
 (comment (duration->map (t/new-duration 1 :minutes)))
 
+;;
+;; todo update to accept singular units minute hour second etc
+;; mainly for 1 (duration 1 :hour 2 :minutes)
+;;
 (>defn duration
   [num units & args]
   [int? duration-units? (s/* (s/cat :n int? :v duration-units?)) => duration?]
@@ -1005,14 +1035,15 @@
 
 (defn format-duration
   [du]
-  (let [seconds (t/seconds du)
-  ;; todo do all minutes have 60 seconds? probably not
-        minutes (Math/floor (/ seconds 60))
-        remain  (- seconds (* minutes 60))
-        secs    [remain (if (= 1 remain) "second" "seconds")]
-        mins    [minutes (if (= 1 minutes) "minute" "minutes")]]
-    (str/join " "
-      (apply concat (remove #(zero? (first %)) [mins secs])))))
+  (when du
+    (let [seconds (t/seconds du)
+          ;; todo do all minutes have 60 seconds? probably not
+          minutes (Math/floor (/ seconds 60))
+          remain  (- seconds (* minutes 60))
+          secs    [remain (if (= 1 remain) "second" "seconds")]
+          mins    [minutes (if (= 1 minutes) "minute" "minutes")]]
+      (str/join " "
+        (apply concat (remove #(zero? (first %)) [mins secs]))))))
 
 (comment
   (apply concat (remove #(zero? (first %)) [[0 "minutes"] [10 "seconds"]]))
@@ -1021,7 +1052,6 @@
     (remove #(zero? (val %))))
   (t/seconds (duration 1 :minutes 20 :seconds))
   (.-_seconds (duration 1 :minutes 10 :seconds))
-
   )
 
 (defn period->map
@@ -1031,6 +1061,7 @@
     {:days   (t/days p)
      :months (t/months p)
      :years  (t/years p)}))
+
 
 (comment (period->map (t/new-period 3 :days)))
 
@@ -1046,7 +1077,20 @@
         first))
     ""))
 
-(defn format-offset [x]
+(>defn offset-from-date
+  [ref-date offset]
+  [date? offset? => date-time?]
+  (let [period   (:period offset)
+        duration (:duration offset)]
+    (cond-> (->date-time ref-date)
+      period (t/+ period)
+      duration (t/+ duration))))
+
+(comment
+  (offset-from-date (t/today) (offset 2 :days)))
+
+(defn format-offset
+  [x]
   (cond
     (offset? x)
     (do
