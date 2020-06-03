@@ -12,9 +12,6 @@
 
            com.fulcrologic/fulcro           {:mvn/version "3.2.9"}
            com.fulcrologic/guardrails       {:mvn/version "0.0.12"}
-           tick                             {:mvn/version "0.4.23-alpha"}
-           ;; Needed for tick in cljs
-           thheller/shadow-cljsjs           {:mvn/version "0.0.21"}
 
            org.clojure/core.async           {:mvn/version "1.2.603"}
 
