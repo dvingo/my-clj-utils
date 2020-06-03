@@ -30,7 +30,6 @@
     [goog.events :as events]
     [goog.object :as gobj]
     [reitit.frontend.easy :as rfe]
-    [space.matterandvoid.client.router :as r]
     [taoensso.timbre :as log]
     [tick.alpha.api :as t])
   (:require-macros [dv.fulcro-util]))
@@ -77,14 +76,6 @@
     (or (nil? min) (nil? max)) (to-int num-str)
     :else (Math/min max (Math/max min (to-int num-str)))))
 
-(defn str->tick-days-period
-  [s]
-  (let [i (pos-or-empty s)
-        i (cond (string? i) ""
-                (zero? i) 1
-                :elsee i)]
-    (cond-> i (number? i)
-      (t/new-period :days))))
 
 (>defn uuid
   ([] [=> uuid?] (random-uuid))
@@ -321,19 +312,6 @@
 (defn on-server? []
   (not (exists? js/window)))
 
-(defn link
-  ([target current-tab]
-   (link target current-tab {}))
-  ([target current-tab opts]
-   (dom/a :.item
-     (merge
-       {:classes [(when (= target current-tab) "active")]
-        :key     (str target)
-        :href    (if (on-server?)
-                   (name target)
-                   (r/route-href target))}
-       opts)
-     (str/capitalize (name target)))))
 
 (defn notification [{:keys [ui/submit-state ui/server-message] :as props}]
   (let [[success? failed?] (map #{submit-state} [:state/success :state/failed])

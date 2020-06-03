@@ -1109,3 +1109,39 @@
   (type (offset 1 :days))
   (format-period (t/new-period 3 :days))
   (format-period (t/new-period 3 :years)))
+
+
+;; Form helpers, str-> tick types and back
+;; duplicated from fulcro-utils to avoid pulling in this ns
+
+(s/def ::str-or-num (s/or :s string? :n number?))
+
+(defn parse-int [int-str] (js/parseInt int-str 10))
+
+(>defn to-int
+  [str-num]
+  [::str-or-num => (s/or :empty #{""} :n number?)]
+  (if (string? str-num)
+    (let [v (str/replace str-num #"[^-0-9]" "")]
+      (cond-> v
+        (not= v "")
+        parse-int))
+    str-num))
+(comment (to-int "9sss")
+  (to-int "-10") (to-int "-0"))
+
+(>defn pos-or-empty
+  [i]
+  [string? => ::str-or-num]
+  (if (empty? i)
+    i
+    (Math/max 0 (to-int i))))
+
+(defn str->tick-days-period
+  [s]
+  (let [i (pos-or-empty s)
+        i (cond (string? i) ""
+                (zero? i) 1
+                :elsee i)]
+    (cond-> i (number? i)
+      (t/new-period :days))))
