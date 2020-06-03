@@ -11,10 +11,6 @@
            [java.util UUID]
            [crux.api ICruxDatasource ICruxAPI]))
 
-;; This is to support not having to wire the crux-node through the web request
-;; call stack - you can bind it once higher up the call stack.
-;(def ^:dynamic *crux-node* crux-node)
-
 (defn id? [id]
   (or (keyword? id) (uuid? id)))
 
