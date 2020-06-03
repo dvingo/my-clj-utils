@@ -287,8 +287,7 @@
 (defn mk-get-id-from-coll
   "Unique id prop of item in a collection of another entity under teh f-kw prop
   ex: :task/id :task/description, returns a fn that takes a collection of ids
-  and a value to find for each of the entities.
-"
+  and a value to find for each of the entities."
   [id-kw f-kw]
   (fn get-id-from-coll*
     [col v]
@@ -307,15 +306,19 @@
 (defmacro gen-make-db-entity
   "Assoces crux id"
   [name-sym spec]
-  (let [sym (-> (str "make-db-" name-sym) keyword symbol)
-        make-fn (symbol (str "make-" name-sym))
-        id-kw (keyword name-sym "id")
+  (let [nm (name spec)
+        make-fn (symbol (str "make-" nm))
+        id-kw (keyword nm "id")
         props (gensym "props")]
-    `(>defn ~sym
-       ~(str "Make a " name-sym " to insert into crux")
+    `(>defn ~name-sym
+       ~(str "Make a " nm " to insert into crux")
        [~props]
        [map? ~'=> ~spec]
        (assoc-crux-id ~id-kw (~make-fn ~props)))))
+
+(comment
+  (macroexpand-1 '(gen-make-db-entity make-db-task ::task))
+  )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Update entity

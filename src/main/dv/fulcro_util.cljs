@@ -8,7 +8,7 @@
 ;; client-side pathom indexeddb
 ;; websocket network remote
 ;; etc
-(ns dv.fulcro-utils
+(ns dv.fulcro-util
   (:refer-clojure :exclude [uuid])
   (:require
     ["react" :as react]
@@ -35,7 +35,7 @@
     [space.matterandvoid.client.router :as r]
     [taoensso.timbre :as log]
     [tick.alpha.api :as t])
-  (:require-macros [dv.fulcro-utils]))
+  (:require-macros [dv.fulcro-util]))
 
 (s/def ::str-or-num (s/or :s string? :n number?))
 

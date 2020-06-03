@@ -1,4 +1,4 @@
-(ns dv.fulcro-utils
+(ns dv.fulcro-util
   (:require
     [clojure.spec.alpha :as s]
     [com.fulcrologic.fulcro.components :as comp :refer [defsc]]
