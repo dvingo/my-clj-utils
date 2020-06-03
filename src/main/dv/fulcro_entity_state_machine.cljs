@@ -11,11 +11,10 @@
     [com.fulcrologic.fulcro.mutations :as m :refer [defmutation]]
     [com.fulcrologic.fulcro.ui-state-machines :as sm :refer [defstatemachine]]
     [com.fulcrologic.guardrails.core :refer [>defn => ?]]
-    [dv.fulcro-util :as cu]
-    [taoensso.timbre :as log]
+    [dv.fulcro-util :as fu]
     [goog.object :as gobj]
-    [tick.alpha.api :as t])
-  (:require-macros [space.matterandvoid.client.util]))
+    [taoensso.timbre :as log]
+    [tick.alpha.api :as t]))
 
 (defn actor->inst [actor-kw env]
   (comp/ident->any (::sm/app env) (sm/actor->ident env actor-kw)))
@@ -93,7 +92,7 @@
                           ;; todo scroll to top of window
                           (-> env
                             (sm/apply-action #(merge/merge-component % form-cls entity :append append))
-                            (sm/apply-action #(cu/reset-form* % (sm/actor->ident env :actor/form)))
+                            (sm/apply-action #(fu/reset-form* % (sm/actor->ident env :actor/form)))
                             (sm/assoc-aliased :server-msg "Success")
                             (sm/set-timeout :clear-msg-timer :event/reset {} 2000)
                             (sm/activate :state/success))))}
@@ -101,7 +100,7 @@
                       (global-handler
                         (fn [env]
                           (log/info "SUBMIT FAILED: " env)
-                          (let [msg (cu/get-server-mutation-err env)]
+                          (let [msg (fu/get-server-mutation-err env)]
                             (-> env
                               (sm/assoc-aliased :server-msg msg)
                               (sm/activate :state/failed)))))}}}

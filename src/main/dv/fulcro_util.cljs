@@ -12,8 +12,6 @@
   (:refer-clojure :exclude [uuid])
   (:require
     ["react" :as react]
-    ["@emotion/styled" :default styled]
-    ["@emotion/core" :refer [Global]]
     [cljs.core.async :refer [put! chan]]
     [clojure.spec.alpha :as s]
     [clojure.string :as str]
@@ -27,7 +25,7 @@
     [com.fulcrologic.fulcro.ui-state-machines :as sm :refer [defstatemachine]]
     [com.fulcrologic.guardrails.core :refer [>defn => ?]]
     [com.fulcrologic.semantic-ui.modules.transition.ui-transition :refer [ui-transition]]
-    [dv.cljs-emotion :as styled :refer [defstyled]]
+    [dv.cljs-emotion :refer [defstyled]]
     [edn-query-language.core :as eql]
     [goog.events :as events]
     [goog.object :as gobj]
@@ -434,3 +432,5 @@
                    (dom/td (str k))
                    (dom/td (pr-str v))))
             m))))))
+
+(defstyled ^{:styled/classname :full} hover-hand :div {":hover" {:cursor "pointer"}})
