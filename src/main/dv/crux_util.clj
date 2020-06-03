@@ -283,6 +283,40 @@
 (comment
   (read-merge-entity :user/id {:user/id #uuid "2eb987f0-d580-4545-8b26-671ac8083260"}))
 
+
+(defn mk-get-id-from-coll
+  "Unique id prop of item in a collection of another entity under teh f-kw prop
+  ex: :task/id :task/description, returns a fn that takes a collection of ids
+  and a value to find for each of the entities.
+"
+  [id-kw f-kw]
+  (fn get-id-from-coll*
+    [col v]
+    (when (seq col)
+      (ffirst
+        (q
+          {:find  '[t]
+           :where [['t id-kw 'id]
+                   ['t f-kw v]]
+           :args  (mapv #(hash-map 'id %) col)})))))
+
+(comment
+  (def get-task-by-description (mk-get-id-from-coll :task/id :task/description))
+  (get-task-by-description [] "Something to do"))
+
+(defmacro gen-make-db-entity
+  "Assoces crux id"
+  [name-sym spec]
+  (let [sym (-> (str "make-db-" name-sym) keyword symbol)
+        make-fn (symbol (str "make-" name-sym))
+        id-kw (keyword name-sym "id")
+        props (gensym "props")]
+    `(>defn ~sym
+       ~(str "Make a " name-sym " to insert into crux")
+       [~props]
+       [map? ~'=> ~spec]
+       (assoc-crux-id ~id-kw (~make-fn ~props)))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Update entity
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
