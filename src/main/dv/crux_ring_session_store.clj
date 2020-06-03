@@ -3,7 +3,6 @@
     [crux.api :as crux]
     [dv.crux-util :as cutil]
     [io.pedestal.http.csrf :refer [anti-forgery-token-str]]
-    [space.matterandvoid.util :as u]
     [taoensso.timbre :as log])
   (:import
     [ring.middleware.session.store SessionStore]
@@ -38,7 +37,7 @@
     ;(log/info "writing session: at key: " key)
     (let [key     (try (cond-> key (some? key) UUID/fromString)
                        (catch Exception e (UUID/randomUUID)))
-          key     (or key (u/uuid))
+          key     (or key (UUID/randomUUID))
           tx-data (make-session-data key data)]
       (log/trace "Writing session data: " tx-data)
       (log/trace "At key : " key)
