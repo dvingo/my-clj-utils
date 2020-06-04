@@ -75,11 +75,6 @@
     (or (nil? min) (nil? max)) (to-int num-str)
     :else (Math/min max (Math/max min (to-int num-str)))))
 
-
-(>defn uuid
-  ([] [=> uuid?] (random-uuid))
-  ([s] [any? => any?] (cljs.core/uuid s)))
-
 (defn listen
   ([el type]
    (let [out (chan)]
@@ -97,9 +92,6 @@
 
 (defn remove-ids* [state table-key ids]
   (reduce #(remove-id* %1 table-key %2) state ids))
-
-(defn id? [id]
-  (or (keyword? id) (uuid? id)))
 
 (defn nan? [v] (js/Number.isNaN v))
 
@@ -428,3 +420,4 @@
    With args, builds UUID based on input (useful in tests)."
   ([] [=> uuid?] (random-uuid))
   ([s] [any? => any?] (cljs.core/uuid s)))
+
