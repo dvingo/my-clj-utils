@@ -30,8 +30,7 @@
     [goog.events :as events]
     [goog.object :as gobj]
     [reitit.frontend.easy :as rfe]
-    [taoensso.timbre :as log]
-    [tick.alpha.api :as t])
+    [taoensso.timbre :as log])
   (:require-macros [dv.fulcro-util]))
 
 (s/def ::str-or-num (s/or :s string? :n number?))
