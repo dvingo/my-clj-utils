@@ -411,3 +411,20 @@
             m))))))
 
 (defstyled ^{:styled/classname :full} hover-hand :div {":hover" {:cursor "pointer"}})
+
+
+(defn id? [id]
+  (or (keyword? id) (uuid? id)))
+
+;; [prop val]
+(s/def ::ident (s/tuple qualified-keyword? id?))
+
+(defn server-error [msg]
+  {:server/message msg
+   :server/error? true})
+
+(>defn uuid
+  "Without args gives random UUID.
+   With args, builds UUID based on input (useful in tests)."
+  ([] [=> uuid?] (random-uuid))
+  ([s] [any? => any?] (cljs.core/uuid s)))

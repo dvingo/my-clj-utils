@@ -3,7 +3,8 @@
     [clojure.spec.alpha :as s]
     [com.fulcrologic.fulcro.components :as comp :refer [defsc]]
     [com.fulcrologic.fulcro.mutations :refer [defmutation]]
-    [com.fulcrologic.guardrails.core :refer [>defn =>]]))
+    [com.fulcrologic.guardrails.core :refer [>defn =>]])
+  (:import [java.util UUID]))
 
 (s/def ::props (s/coll-of simple-symbol? :count 1))
 
@@ -99,3 +100,25 @@
     '(def-return-entity TaskItemReturn
        [:component/id :task-item-return]
        app/all-task-fields)))
+
+
+(defn id? [id]
+  (or (keyword? id) (uuid? id)))
+
+;; [prop val]
+(s/def ::ident (s/tuple qualified-keyword? id?))
+
+(defn server-error [msg]
+  {:server/message msg
+   :server/error?  true})
+
+(>defn uuid
+  "Without args gives random UUID.
+  With args, builds UUID based on input (useful in tests)."
+  ([] [=> uuid?] (UUID/randomUUID))
+  ([int-or-str]
+   [(s/or :i int? :s string?) => uuid?]
+   (if (int? int-or-str)
+     (UUID/fromString
+       (format "ffffffff-ffff-ffff-ffff-%012d" int-or-str))
+     (UUID/fromString int-or-str))))
