@@ -13,8 +13,7 @@
     [com.fulcrologic.guardrails.core :refer [>defn => ?]]
     [dv.fulcro-util :as fu]
     [goog.object :as gobj]
-    [taoensso.timbre :as log]
-    [tick.alpha.api :as t]))
+    [taoensso.timbre :as log]))
 
 (defn actor->inst [actor-kw env]
   (comp/ident->any (::sm/app env) (sm/actor->ident env actor-kw)))

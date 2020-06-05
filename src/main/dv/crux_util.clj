@@ -281,7 +281,7 @@
 
 
 (defn mk-get-id-from-coll
-  "Unique id prop of item in a collection of another entity under teh f-kw prop
+  "Unique id prop of item in a collection of another entity under the f-kw prop
   ex: :task/id :task/description, returns a fn that takes a collection of ids
   and a value to find for each of the entities."
   [id-kw f-kw]
