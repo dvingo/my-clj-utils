@@ -1,9 +1,6 @@
 (ns dv.pathom
   (:require
-    [clojure.spec.alpha :as s]
-    [clojure.core.async :as async :refer [go <! >! <!! chan]]
     [clojure.pprint :refer [pprint]]
-    [com.wsscode.common.async-clj :refer [let-chan]]
     [com.wsscode.pathom.connect :as pc]
     [com.wsscode.pathom.core :as p]
     [com.wsscode.pathom.viz.ws-connector.core :as pathom-viz]
@@ -66,7 +63,7 @@
      (fn [env tx]
        (let [children     (-> tx eql/query->ast :children)
              query-params (reduce
-                            (fn [qps {:keys [type params]}]
+                            (fn [qps {:keys [params]}]
                               (cond-> qps
                                 (seq params) (merge params)))
                             {}
@@ -114,10 +111,9 @@
   (when (and env-additions (not (fn? env-additions)))
     (throw (Exception. "build-parser: env-additions must be a function.")))
 
-  (let [trace?         (if (some? trace?) trace? (not (nil? (System/getProperty "trace"))))
-        sensitive-keys (conj (set sensitive-keys) :com.wsscode.pathom/trace)
+  (let [sensitive-keys (conj (set sensitive-keys) :com.wsscode.pathom/trace)
         handle-errors? true
-        real-parser    (p/parser
+        parser         (p/parser
                          {::p/mutate  pc/mutate
                           ::p/env     {::p/reader
                                        [p/map-reader
@@ -128,25 +124,26 @@
                                        ::p/placeholder-prefixes
                                        #{">"}}
                           ::p/plugins (cond->
+
                                         [(pc/connect-plugin
                                            {::pc/register
-                                            (cond-> resolvers
-                                              index-explorer? (conj index-explorer))})
+                                            (cond-> resolvers index-explorer? (conj index-explorer))})
                                          (preprocess-parser-plugin log-requests)
                                          query-params-to-env-plugin
                                          (p/post-process-parser-plugin p/elide-not-found)]
+
                                         handle-errors? (conj p/error-handler-plugin)
                                         env-additions (conj (p/env-wrap-plugin (mk-augment-env-request env-additions)))
                                         trace? (conj p/trace-plugin))})
-        ;; NOTE: Add -Dtrace to the server JVM to enable Fulcro Inspect query performance traces to the network tab.
-        ;; This makes the network responses much larger and should not be used in production.
-        real-parser    (cond->> real-parser
+        parser         (cond->> parser
                          enable-pathom-viz?
                          (pathom-viz/connect-parser {::pathom-viz/parser-id ::parser}))]
     (fn wrapped-parser [env tx]
       (when-not (vector? tx) (throw (Exception. "You must pass a vector for the transaction.")))
-      (let [tx   (if trace? (conj tx :com.wsscode.pathom/trace) tx)
-            resp (real-parser env tx)]
+      ;; Add trace - pathom-viz already adds it so only add if that's not included.
+      (let [tx   (if (and trace? (not enable-pathom-viz?))
+                   (conj tx :com.wsscode.pathom/trace) tx)
+            resp (parser env tx)]
         (when log-responses?
           (log-response! sensitive-keys resp))
         resp))))
