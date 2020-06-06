@@ -1,10 +1,14 @@
 (ns dv.fulcro-util
   (:require
+    [clojure.java.io :as io]
     [clojure.spec.alpha :as s]
+    [clojure.edn :as edn]
     [com.fulcrologic.fulcro.components :as comp :refer [defsc]]
     [com.fulcrologic.fulcro.mutations :refer [defmutation]]
     [com.fulcrologic.guardrails.core :refer [>defn =>]])
-  (:import [java.util UUID]))
+  (:import
+    [java.util UUID]
+    [java.io PushbackReader IOException]))
 
 (s/def ::props (s/coll-of simple-symbol? :count 1))
 
@@ -122,3 +126,21 @@
      (UUID/fromString
        (format "ffffffff-ffff-ffff-ffff-%012d" int-or-str))
      (UUID/fromString int-or-str))))
+
+(defn load-edn
+  "Load edn from an io/reader source
+  Tries to read as resource first then filename."
+  [source]
+  (try
+    (with-open [r (io/reader (io/resource source))] (edn/read (PushbackReader. r)))
+    (catch IOException e
+      (try
+        ;; try just a file read
+        (with-open [r (io/reader source)] (edn/read (PushbackReader. r)))
+        (catch IOException e
+          (printf "Couldn't open '%s': %s\n" source (.getMessage e)))
+        (catch RuntimeException e
+          (printf "Error parsing edn file '%s': %s\n" source (.getMessage e))))
+      (printf "Couldn't open '%s': %s\n" source (.getMessage e)))
+    (catch RuntimeException e
+      (printf "Error parsing edn file '%s': %s\n" source (.getMessage e)))))
