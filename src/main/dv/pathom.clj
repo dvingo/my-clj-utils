@@ -79,34 +79,40 @@
 ;;; https://github.com/fulcrologic/fulcro-rad/blob/develop/src/main/com/fulcrologic/rad/pathom.clj
 ;; deals with removing keys and logging responses etc.
 
-(defn build-parser [{:keys [resolvers log-responses? enable-pathom-viz? env-additions]}]
-  (when-not (fn? env-additions) (throw (Exception. "env-additions must be a function.")))
+(defn build-parser
+  [{:keys [resolvers log-responses? enable-pathom-viz? env-additions trace?]}]
+  (when (and env-additions (not (fn? env-additions)))
+    (throw (Exception. "build-parser: env-additions must be a function.")))
 
-  (let [real-parser (p/parallel-parser
-                      {::p/mutate  pc/mutate-async
-                       ::p/env     {::p/reader               [p/map-reader
-                                                              pc/parallel-reader
-                                                              pc/open-ident-reader
-                                                              p/env-placeholder-reader]
-                                    ::p/placeholder-prefixes #{">"}}
-                       ::p/plugins [(pc/connect-plugin {::pc/register resolvers})
-                                    (p/env-wrap-plugin (mk-augment-env-request env-additions))
-                                    (preprocess-parser-plugin log-requests)
-                                    p/error-handler-plugin
-                                    query-params-to-env-plugin
-                                    (p/post-process-parser-plugin p/elide-not-found)
-                                    ;p/trace-plugin
-                                    ]})
+  (let [trace?         (if (some? trace?) trace? (not (nil? (System/getProperty "trace"))))
+        handle-errors? true
+        real-parser    (p/parser
+                         {::p/mutate  pc/mutate
+                          ::p/env     {::p/reader
+                                       [p/map-reader
+                                        pc/reader2
+                                        pc/index-reader
+                                        pc/open-ident-reader
+                                        p/env-placeholder-reader]
+                                       ::p/placeholder-prefixes
+                                       #{">"}}
+                          ::p/plugins (cond->
+                                        [(pc/connect-plugin {::pc/register resolvers})
+                                         (preprocess-parser-plugin log-requests)
+                                         query-params-to-env-plugin
+                                         (p/post-process-parser-plugin p/elide-not-found)]
+                                        handle-errors? (conj p/error-handler-plugin)
+                                        env-additions (conj (p/env-wrap-plugin (mk-augment-env-request env-additions)))
+                                        trace? (conj p/trace-plugin))})
         ;; NOTE: Add -Dtrace to the server JVM to enable Fulcro Inspect query performance traces to the network tab.
         ;; This makes the network responses much larger and should not be used in production.
-        trace?      (not (nil? (System/getProperty "trace")))
-        real-parser (cond->> real-parser
-                      enable-pathom-viz?
-                      (pathom-viz/connect-parser {::pathom-viz/parser-id ::parser}))]
+        real-parser    (cond->> real-parser
+                         enable-pathom-viz?
+                         (pathom-viz/connect-parser {::pathom-viz/parser-id ::parser}))]
     (fn wrapped-parser [env tx]
       (when-not (vector? tx) (throw (Exception. "You must pass a vector for the transaction.")))
       (let [tx   (if trace? (conj tx :com.wsscode.pathom/trace) tx)
-            resp (async/<!! (real-parser env tx))]
+            resp (real-parser env tx)]
 
         (when log-responses?
           (log/info "Pathom response:")
