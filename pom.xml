@@ -30,18 +30,124 @@
       <artifactId>clojure</artifactId>
       <version>1.10.1</version>
     </dependency>
+    <dependency>
+      <groupId>com.wsscode</groupId>
+      <artifactId>pathom</artifactId>
+      <version>2.2.31</version>
+    </dependency>
+    <dependency>
+      <groupId>cryptohash-clj</groupId>
+      <artifactId>cryptohash-clj</artifactId>
+      <version>0.1.6</version>
+    </dependency>
+    <dependency>
+      <groupId>com.fulcrologic</groupId>
+      <artifactId>guardrails</artifactId>
+      <version>0.0.12</version>
+    </dependency>
+    <dependency>
+      <groupId>io.pedestal</groupId>
+      <artifactId>pedestal.jetty</artifactId>
+      <version>0.5.8</version>
+    </dependency>
+    <dependency>
+      <groupId>org.clojure</groupId>
+      <artifactId>spec.alpha</artifactId>
+      <version>0.2.187</version>
+    </dependency>
+    <dependency>
+      <groupId>com.taoensso</groupId>
+      <artifactId>tufte</artifactId>
+      <version>2.1.0</version>
+    </dependency>
+    <dependency>
+      <groupId>io.pedestal</groupId>
+      <artifactId>pedestal.service</artifactId>
+      <version>0.5.8</version>
+    </dependency>
+    <dependency>
+      <groupId>ring</groupId>
+      <artifactId>ring-defaults</artifactId>
+      <version>0.3.2</version>
+    </dependency>
+    <dependency>
+      <groupId>juxt</groupId>
+      <artifactId>crux-metrics</artifactId>
+      <version>20.05-1.8.4-alpha</version>
+    </dependency>
+    <dependency>
+      <groupId>dv</groupId>
+      <artifactId>cljs-emotion</artifactId>
+      <version>version-one</version>
+    </dependency>
+    <dependency>
+      <groupId>com.fulcrologic</groupId>
+      <artifactId>fulcro</artifactId>
+      <version>3.2.9</version>
+    </dependency>
+    <dependency>
+      <groupId>juxt</groupId>
+      <artifactId>crux-rocksdb</artifactId>
+      <version>20.05-1.8.4-alpha</version>
+    </dependency>
+    <dependency>
+      <groupId>com.taoensso</groupId>
+      <artifactId>timbre</artifactId>
+      <version>4.10.0</version>
+    </dependency>
+    <dependency>
+      <groupId>com.wsscode</groupId>
+      <artifactId>pathom-viz-connector</artifactId>
+      <version>1.0.3</version>
+    </dependency>
+    <dependency>
+      <groupId>metosin</groupId>
+      <artifactId>reitit-pedestal</artifactId>
+      <version>0.5.2</version>
+    </dependency>
+    <dependency>
+      <groupId>datascript</groupId>
+      <artifactId>datascript</artifactId>
+      <version>0.18.11</version>
+    </dependency>
+    <dependency>
+      <groupId>mount</groupId>
+      <artifactId>mount</artifactId>
+      <version>0.1.16</version>
+    </dependency>
+    <dependency>
+      <groupId>juxt</groupId>
+      <artifactId>crux-core</artifactId>
+      <version>20.05-1.8.4-alpha</version>
+    </dependency>
+    <dependency>
+      <groupId>metosin</groupId>
+      <artifactId>reitit</artifactId>
+      <version>0.5.2</version>
+    </dependency>
+    <dependency>
+      <groupId>funcool</groupId>
+      <artifactId>httpurr</artifactId>
+      <version>2.0.0</version>
+    </dependency>
+    <dependency>
+      <groupId>ring</groupId>
+      <artifactId>ring-core</artifactId>
+      <version>1.8.1</version>
+    </dependency>
+    <dependency>
+      <groupId>org.clojure</groupId>
+      <artifactId>core.async</artifactId>
+      <version>1.2.603</version>
+    </dependency>
   </dependencies>
   <build>
-    <sourceDirectory>src</sourceDirectory>
+    <sourceDirectory>src/main</sourceDirectory>
   </build>
   <repositories>
     <repository>
       <id>clojars</id>
       <url>https://repo.clojars.org/</url>
-    </repository>
-    <repository>
-      <id>sonatype</id>
-      <url>https://oss.sonatype.org/content/repositories/snapshots/</url>
     </repository>
   </repositories>
   <distributionManagement>

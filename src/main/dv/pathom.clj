@@ -81,6 +81,7 @@
 
 (defn build-parser [{:keys [resolvers log-responses? enable-pathom-viz? env-additions]}]
   (when-not (fn? env-additions) (throw (Exception. "env-additions must be a function.")))
+
   (let [real-parser (p/parallel-parser
                       {::p/mutate  pc/mutate-async
                        ::p/env     {::p/reader               [p/map-reader
