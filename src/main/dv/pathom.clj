@@ -79,12 +79,43 @@
 ;;; https://github.com/fulcrologic/fulcro-rad/blob/develop/src/main/com/fulcrologic/rad/pathom.clj
 ;; deals with removing keys and logging responses etc.
 
+(defn remove-omissions
+  "Replaces black-listed keys from tx with ::omitted, meant for logging tx's
+  without logging sensitive details like passwords."
+  [sensitive-keys tx]
+  (w/postwalk
+    (fn [x]
+      (if (and (vector? x) (= 2 (count x)) (contains? sensitive-keys (first x)))
+        [(first x) ::omitted]
+        x))
+    tx))
+
+(defn pprint-val [value]
+  (binding [*print-level* 4 *print-length* 4]
+    (try
+      (with-out-str (pprint value))
+      (catch Throwable e
+        (log/error (.getMessage e))
+        "<failed to serialize>"))))
+
+(defn log-response!
+  [sensitive-keys response]
+  (log/info "Pathom response:\n"
+    (pprint-val (remove-omissions sensitive-keys response))))
+
 (defn build-parser
-  [{:keys [resolvers log-responses? enable-pathom-viz? env-additions trace?]}]
+  [{:keys [resolvers
+           log-responses?
+           enable-pathom-viz?
+           env-additions
+           trace?
+           index-explorer?
+           sensitive-keys]}]
   (when (and env-additions (not (fn? env-additions)))
     (throw (Exception. "build-parser: env-additions must be a function.")))
 
   (let [trace?         (if (some? trace?) trace? (not (nil? (System/getProperty "trace"))))
+        sensitive-keys (conj (set sensitive-keys) :com.wsscode.pathom/trace)
         handle-errors? true
         real-parser    (p/parser
                          {::p/mutate  pc/mutate
@@ -97,7 +128,10 @@
                                        ::p/placeholder-prefixes
                                        #{">"}}
                           ::p/plugins (cond->
-                                        [(pc/connect-plugin {::pc/register resolvers})
+                                        [(pc/connect-plugin
+                                           {::pc/register
+                                            (cond-> resolvers
+                                              index-explorer? (conj index-explorer))})
                                          (preprocess-parser-plugin log-requests)
                                          query-params-to-env-plugin
                                          (p/post-process-parser-plugin p/elide-not-found)]
@@ -113,8 +147,6 @@
       (when-not (vector? tx) (throw (Exception. "You must pass a vector for the transaction.")))
       (let [tx   (if trace? (conj tx :com.wsscode.pathom/trace) tx)
             resp (real-parser env tx)]
-
         (when log-responses?
-          (log/info "Pathom response:")
-          (pprint (w/postwalk-replace {:user/password nil} resp)))
+          (log-response! sensitive-keys resp))
         resp))))
