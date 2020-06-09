@@ -5,7 +5,8 @@
   (:import [java.util UUID]))
 
 (defmacro make-card
-  "Create a devcard for a fulcro component."
+  "Create a devcard for a fulcro component.
+  Takes symbol of fulcro component and options."
   ([component]
    `(make-card ~component {}))
   ([component {::keys [wrap-root? root-state use-sablono?]
@@ -23,9 +24,8 @@
                                                   (fn [_# render#] (sablono.core/html (render#)))))
              :fulcro.inspect.core/app-id ~id}]
         (defonce ~app (upsert-app ~config))
-        (println "App name is : " '~app)
+        ;(println "App name is : " '~app)
         (defcard ~(symbol (str (name component) "-card"))
-          "# Hellow olrd"
           (dc/dom-node
             (fn [_# dom-node#]
               (mount-at ~app
@@ -33,7 +33,6 @@
                  ::wrap-root?      ~wrap-root?
                  ::persistence-key ::test1}
                 dom-node#))))))))
-
 
 (comment
   (macroexpand-1

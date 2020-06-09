@@ -35,7 +35,7 @@
 
 (defn make-root [Root]
   (let [generated-name (gensym)
-        component-key  (keyword "hello.world.devcards-fulcro3" (name generated-name))]
+        component-key  (keyword "dv.devcards-fulcro3" (name generated-name))]
     (fc/configure-component! (fn *dyn-root* [])
       component-key
       {:initial-state (fn [_ params]
@@ -64,9 +64,6 @@
 (defn upsert-app [{::keys                    [app persistence-key computed]
                    :fulcro.inspect.core/keys [app-id]
                    :as                       config}]
-
-  (println "IN Upsert-app id: " app-id)
-  (println "IN Upsert-app persistence-key: " persistence-key)
   (if-let [instance (and persistence-key (get @persistent-apps* persistence-key))]
     instance
     (let [app      (cond-> app
@@ -140,14 +137,13 @@
   )
 
 
-(defn fulcro-card [config]
-  {::wsm/init #(fulcro-card-init % config)})
+;(defn fulcro-card [config]
+;  {::wsm/init #(fulcro-card-init % config)})
 
-(s/fdef fulcro-card
-  :args (s/cat :config (s/keys
-                         :req [::root]
-                         :opt [::wrap-root?
-                               ::app
-                               ::initial-state]))
-  :ret ::wsm/card-instance)
-
+;(s/fdef fulcro-card
+;  :args (s/cat :config (s/keys
+;                         :req [::root]
+;                         :opt [::wrap-root?
+;                               ::app
+;                               ::initial-state]))
+;  :ret ::wsm/card-instance)
