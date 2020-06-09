@@ -1,10 +1,10 @@
 this is a collection of code to help me get things done using clojure and clojurescript.
 
-Might pull these out to separate helper libs later on.
+Contains some code related to:
 
 - crux
-- tick
 - fulcro
+  - devcards support
 - pedestal http server setup with reitit, for use with fulcro
 - pathom parser setup
 
