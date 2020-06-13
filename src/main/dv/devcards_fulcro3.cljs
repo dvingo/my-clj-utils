@@ -7,6 +7,7 @@
     [com.fulcrologic.fulcro.application :as fapp]
     [com.fulcrologic.fulcro.components :as fc]
     [com.fulcrologic.fulcro.dom :as dom]
+    [com.fulcrologic.guardrails.core :refer [>defn | ? =>]]
     [com.fulcrologic.fulcro.inspect.inspect-client :as fi.client]
     [nubank.workspaces.card-types.util :as ct.util]
     [nubank.workspaces.data :as data]
@@ -66,17 +67,19 @@
                    :as                       config}]
   (if-let [instance (and persistence-key (get @persistent-apps* persistence-key))]
     instance
-    (let [app      (cond-> app
-                     (not (contains? app :initial-state))
-                     (assoc :initial-db (fulcro-initial-state config))
+    (let [app-options (cond-> app
+                        (not (contains? app :initial-state))
+                        (assoc :initial-db (fulcro-initial-state config))
 
-                     computed
-                     (update :shared assoc ::computed computed)
+                        computed
+                        (update :shared assoc ::computed computed)
 
-                     app-id
-                     (assoc-in [:initial-db :fulcro.inspect.core/app-id] app-id))
+                        app-id
+                        (assoc-in [:initial-db :fulcro.inspect.core/app-id] app-id))
           ;; TASK: explicit initial state handling
-          instance (fapp/fulcro-app app)]
+          instance    (fapp/fulcro-app app-options)]
+
+      (println "APP options : " app-options )
       (if persistence-key (swap! persistent-apps* assoc persistence-key instance))
       instance)))
 
@@ -85,12 +88,13 @@
   (when-let [app-uuid (fi.client/app-uuid app)]
     (fi.client/dispose-app app-uuid)))
 
-(defn mount-at
+(>defn mount-at
   [app {::keys [root wrap-root? persistence-key] :or {wrap-root? true}} node]
+  [::fapp/app map? some? => any?]
   (let [instance (if wrap-root? (make-root root) root)
         new-app  (fapp/mount! app instance node {:initialize-state? false})]
-    (if persistence-key
-      (swap! persistent-apps* assoc persistence-key new-app))
+    (when persistence-key (swap! persistent-apps* assoc persistence-key new-app))
+    (println "returning new-app: "  new-app)
     new-app))
 
 (defn inspector-set-app [card-id]
@@ -132,7 +136,7 @@
   ;; 2 steps
 
   (let [config {::root SomeComponent ::wrap-root? true}
-        app (upsert-app (assoc config :fulcro.inspect.core/app-id card-id))])
+        app    (upsert-app (assoc config :fulcro.inspect.core/app-id card-id))])
   (mount-at app config node)
   )
 

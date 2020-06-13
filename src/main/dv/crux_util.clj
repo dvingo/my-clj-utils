@@ -228,11 +228,18 @@
 
 (defn join-ref
   "Takes field and either one id or a collection of ids and returns
-  one hash-map for one id, or collection of hash-maps for coll of ids."
+  one hash-map for one id, or collection of hash-maps for coll of ids.
+  i.e. - Turn a collection of ids into maps so pathom can keep walking the graph."
   [kw v]
   (if (coll? v)
-    (mapv #(hash-map kw %) v)
-    {kw v}))
+    (do
+      (when-not (every? id? v)
+        (throw (Exception. (str "crux-util, join-ref passed a non-id property for field: " (pr-str kw)))))
+      (mapv #(hash-map kw %) v))
+    (do
+      (when-not (id? v)
+        (throw (Exception. (str "crux-util, join-ref passed a non-id property for field: " (pr-str kw)))))
+      {kw v})))
 
 (comment
   (join-ref :task/id [#uuid"ec0c6600-5f33-4d2d-844e-7da15586edcb"])
@@ -252,6 +259,15 @@
         (update ent prop #(join-ref id-kw %)))
       ent
       field-tuples)))
+
+(>defn pathom-join
+  [field-tuples entity]
+  [(s/coll-of (s/tuple qualified-keyword? qualified-keyword?) :type vector?) map? => map?]
+  (reduce
+    (fn [ent [prop id-kw]]
+      (update ent prop #(join-ref id-kw %)))
+    entity
+    field-tuples))
 
 (comment
   (pathom-expand-entity
