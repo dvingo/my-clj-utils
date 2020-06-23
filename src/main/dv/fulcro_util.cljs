@@ -1,13 +1,3 @@
-;; state machine
-;; debug helpers
-
-;; I'm thinking of a floating widget on every component that you opt into that you click to toggle
-;; the helpers - pprint props in a floating div etc.
-
-;; client-side pathom
-;; client-side pathom indexeddb
-;; websocket network remote
-;; etc
 (ns dv.fulcro-util
   (:refer-clojure :exclude [uuid])
   (:require
@@ -26,8 +16,6 @@
     [com.fulcrologic.fulcro.ui-state-machines :as sm :refer [defstatemachine]]
     [com.fulcrologic.guardrails.core :refer [>defn => ?]]
     [com.fulcrologic.semantic-ui.modules.transition.ui-transition :refer [ui-transition]]
-    [com.wsscode.pathom.connect :as pc]
-    [com.wsscode.pathom.core :as p]
     [dv.cljs-emotion :refer [defstyled]]
     [edn-query-language.core :as eql]
     [goog.events :as events]
@@ -35,6 +23,13 @@
     [reitit.frontend.easy :as rfe]
     [taoensso.timbre :as log])
   (:require-macros [dv.fulcro-util]))
+
+;; some thoughts:
+;; I'm thinking of a floating widget on every component that you opt into that you click to toggle
+;; the helpers - pprint props in a floating div etc.
+
+;; websocket network remote
+;; etc
 
 (defn conj-vec [entity fkw val]
   (update entity fkw #(conj (or % []) val)))
@@ -451,18 +446,3 @@
                              (log/trace "Parser output: " out)
                              out)))}))]
     {:transmit! (fn [this send-node] (transmit! this send-node))}))
-
-(defn make-parser [resolvers]
-  (p/parallel-parser
-    {::p/env     {::p/reader               [p/map-reader
-                                            pc/parallel-reader
-                                            pc/open-ident-reader
-                                            p/env-placeholder-reader]
-                  ::p/placeholder-prefixes #{">"}
-                  ::pc/mutation-join-globals [:app/id-remaps]
-                  ;::db                       (db/setup-db db-settings)
-                  }
-     ::p/mutate  pc/mutate-async
-     ::p/plugins [(pc/connect-plugin {::pc/register resolvers})
-                  p/error-handler-plugin
-                  p/trace-plugin]}))
