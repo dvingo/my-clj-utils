@@ -55,7 +55,11 @@
 (s/def ::state simple-symbol?)
 
 (defmacro ->s!
-  ""
+  "(->s! state
+     (assoc )
+     (update)
+     etc
+     "
   [state & thread-forms]
   `(swap! ~state
      (fn [s#] (-> s# ~@thread-forms))))

@@ -33,6 +33,12 @@
     [taoensso.timbre :as log])
   (:require-macros [dv.fulcro-util]))
 
+(defn conj-vec [entity fkw val]
+  (update entity fkw #(conj (or % []) val)))
+
+(defn conj-set [entity fkw val]
+  (update entity fkw #(conj (or (set %) #{}) val)))
+
 (s/def ::str-or-num (s/or :s string? :n number?))
 
 (defn parse-int [int-str] (js/parseInt int-str 10))
@@ -191,25 +197,30 @@
 (>defn ui-textfield
   [this label field-kw props & {:as opts}]
   [some? string? keyword? map? ::opt-map => some?]
-  (let [value    (field-kw props)
-        checked? (fs/checked? props field-kw)
-        props    (merge
-                   {:label         label
-                    :inline-err?   true
-                    :type          "text"
-                    :value         (or (str value) "")
-                    :checked?      checked?
-                    :valid?        (not (empty? (str value)))
-                    :error-message "Please enter a value"
-                    :onBlur        (fn [e]
-                                     (let [form-fields (or (fs/get-form-fields this) #{})
-                                           v (str/trim (e/target-value e))]
-                                       (m/set-string!! this field-kw :value v)
-                                       (when (form-fields field-kw)
-                                         (mark-complete! this field-kw))))
-                    :autoComplete  "off"
-                    :onChange      #(m/set-string!! this field-kw :event %)}
-                   (or opts {}))]
+  (let [value     (field-kw props)
+        checked?  (fs/checked? props field-kw)
+        opts      (or opts {})
+        on-change (or (:onChange opts) identity)
+        opts      (dissoc opts :onChange)
+        props     (merge
+                    {:label         label
+                     :inline-err?   true
+                     :type          "text"
+                     :value         (or (str value) "")
+                     :checked?      checked?
+                     :valid?        (not (empty? (str value)))
+                     :error-message "Please enter a value"
+                     :onBlur        (fn [e]
+                                      (let [form-fields (or (fs/get-form-fields this) #{})
+                                            v           (str/trim (e/target-value e))]
+                                        (m/set-string!! this field-kw :value v)
+                                        (when (form-fields field-kw)
+                                          (mark-complete! this field-kw))))
+                     :autoComplete  "off"
+                     :onChange      #(do
+                                       (on-change %)
+                                       (m/set-string!! this field-kw :event %))}
+                    opts)]
     (field props)))
 
 (defn ui-number-field
