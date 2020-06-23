@@ -12,7 +12,7 @@
   (:refer-clojure :exclude [uuid])
   (:require
     ["react" :as react]
-    [cljs.core.async :refer [put! chan]]
+    [cljs.core.async :refer [<! chan put! go go-loop]]
     [clojure.spec.alpha :as s]
     [clojure.string :as str]
     [clojure.walk :as walk]
@@ -22,9 +22,12 @@
     [com.fulcrologic.fulcro.dom :as dom :refer [div ul li p h3 button]]
     [com.fulcrologic.fulcro.dom.events :as e]
     [com.fulcrologic.fulcro.mutations :as m :refer [defmutation]]
+    [com.fulcrologic.fulcro.networking.mock-server-remote :refer [mock-http-server]]
     [com.fulcrologic.fulcro.ui-state-machines :as sm :refer [defstatemachine]]
     [com.fulcrologic.guardrails.core :refer [>defn => ?]]
     [com.fulcrologic.semantic-ui.modules.transition.ui-transition :refer [ui-transition]]
+    [com.wsscode.pathom.connect :as pc]
+    [com.wsscode.pathom.core :as p]
     [dv.cljs-emotion :refer [defstyled]]
     [edn-query-language.core :as eql]
     [goog.events :as events]
@@ -415,8 +418,7 @@
                    (dom/td (pr-str v))))
             m))))))
 
-(defstyled ^{:styled/classname :full} hover-hand :div {":hover" {:cursor "pointer"}})
-
+(defstyled hover-hand :div {":hover" {:cursor "pointer"}})
 
 (defn id? [id]
   (or (keyword? id) (uuid? id)))
@@ -434,3 +436,33 @@
   ([] [=> uuid?] (random-uuid))
   ([s] [any? => any?] (cljs.core/uuid s)))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Pathom remote
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn local-remote
+  [parser env]
+  (let [transmit!
+        (:transmit! (mock-http-server
+                      {:parser
+                       (fn [eql]
+                         (go
+                           (let [out (<! (parser env eql))]
+                             (log/trace "Parser output: " out)
+                             out)))}))]
+    {:transmit! (fn [this send-node] (transmit! this send-node))}))
+
+(defn make-parser [resolvers]
+  (p/parallel-parser
+    {::p/env     {::p/reader               [p/map-reader
+                                            pc/parallel-reader
+                                            pc/open-ident-reader
+                                            p/env-placeholder-reader]
+                  ::p/placeholder-prefixes #{">"}
+                  ::pc/mutation-join-globals [:app/id-remaps]
+                  ;::db                       (db/setup-db db-settings)
+                  }
+     ::p/mutate  pc/mutate-async
+     ::p/plugins [(pc/connect-plugin {::pc/register resolvers})
+                  p/error-handler-plugin
+                  p/trace-plugin]}))

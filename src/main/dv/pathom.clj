@@ -55,7 +55,7 @@
     (reset! -env env)
     (merge env (get-config-map env))))
 
-;; Copied from fulcro-rad, but changed to also pass pararms for mutations.
+;; Copied from fulcro-rad, but changed to also pass params for mutations.
 (def query-params-to-env-plugin
   "Adds top-level load params to env, so nested parsing layers can see them."
   {::p/wrap-parser
