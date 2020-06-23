@@ -231,15 +231,23 @@
   one hash-map for one id, or collection of hash-maps for coll of ids.
   i.e. - Turn a collection of ids into maps so pathom can keep walking the graph."
   [kw v]
-  (if (coll? v)
+  (log/info "kw: " kw " v: " v)
+
+  (cond
+    (coll? v)
     (do
       (when-not (every? id? v)
         (throw (Exception. (str "crux-util, join-ref passed a non-id property for field: " (pr-str kw)))))
       (mapv #(hash-map kw %) v))
-    (do
-      (when-not (id? v)
-        (throw (Exception. (str "crux-util, join-ref passed a non-id property for field: " (pr-str kw)))))
-      {kw v})))
+
+    (id? v)
+    {kw v}
+
+    (nil? v)
+    nil
+
+    :else
+    (throw (Exception. (str "crux-util, join-ref passed a non-id property for field: " (pr-str kw))))))
 
 (comment
   (join-ref :task/id [#uuid"ec0c6600-5f33-4d2d-844e-7da15586edcb"])
@@ -254,6 +262,7 @@
   [field-tuples id]
   [(s/coll-of (s/tuple qualified-keyword? qualified-keyword?) :type vector?) id? => map?]
   (let [ent (domain-entity id)]
+    (log/info "Expanding entity: " ent)
     (reduce
       (fn [ent [prop id-kw]]
         (update ent prop #(join-ref id-kw %)))
@@ -263,6 +272,7 @@
 (>defn pathom-join
   [field-tuples entity]
   [(s/coll-of (s/tuple qualified-keyword? qualified-keyword?) :type vector?) map? => map?]
+  (log/info "pathom-join entity: " entity)
   (reduce
     (fn [ent [prop id-kw]]
       (update ent prop #(join-ref id-kw %)))

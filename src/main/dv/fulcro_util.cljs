@@ -191,6 +191,7 @@
 (>defn ui-textfield
   [this label field-kw props & {:as opts}]
   [some? string? keyword? map? ::opt-map => some?]
+  (log/info "in ui-textfield")
   (let [value    (field-kw props)
         checked? (fs/checked? props field-kw)
         props    (merge
@@ -202,9 +203,13 @@
                     :valid?        (not (empty? (str value)))
                     :error-message "Please enter a value"
                     :onBlur        (fn [e]
-                                     (let [v (str/trim (e/target-value e))]
-                                       (m/set-string!! this field-kw :value v)
-                                       (mark-complete! this field-kw)))
+                                     (log/info "in on blur")
+                                     (let [form-fields (fs/get-form-fields this)]
+                                       (log/info "form-fields" form-fields)
+                                       #_(let [v (str/trim (e/target-value e))]
+                                         (m/set-string!! this field-kw :value v)
+                                         (when (form-fields field-kw)
+                                           (mark-complete! this field-kw)))))
                     :autoComplete  "off"
                     :onChange      #(m/set-string!! this field-kw :event %)}
                    (or opts {}))]
