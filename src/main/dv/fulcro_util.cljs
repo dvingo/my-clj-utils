@@ -200,6 +200,7 @@
         opts      (or opts {})
         on-change (or (:onChange opts) identity)
         opts      (dissoc opts :onChange)
+        cls       (comp/react-type this)
         props     (merge
                     {:label         label
                      :inline-err?   true
@@ -209,7 +210,7 @@
                      :valid?        (not (empty? (str value)))
                      :error-message "Please enter a value"
                      :onBlur        (fn [e]
-                                      (let [form-fields (or (fs/get-form-fields this) #{})
+                                      (let [form-fields (or (fs/get-form-fields cls) #{})
                                             v           (str/trim (e/target-value e))]
                                         (m/set-string!! this field-kw :value v)
                                         (when (form-fields field-kw)
