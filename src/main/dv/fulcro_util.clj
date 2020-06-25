@@ -31,6 +31,12 @@
   (s/conform ::body body)
   (s/explain ::body body))
 
+(defn conj-vec [entity fkw val]
+  (update entity fkw #(conj (or % []) val)))
+
+(defn conj-set [entity fkw val]
+  (update entity fkw #(conj (or (set %) #{}) val)))
+
 (defmacro defm
   "define a mutation for the simple case of threading state through forms.
   (defm pause-game [_] (assoc-math* :math/game-state :not-running))"

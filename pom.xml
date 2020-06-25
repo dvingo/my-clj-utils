@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>dv</groupId>
   <artifactId>clj-utils</artifactId>
-  <version>2020-06-25</version>
+  <version>2020-06-25-1</version>
   <name>clj-utils</name>
   <description>My helpers and additions</description>
   <url>https://github.com/dvingo/my-clj-utils</url>
