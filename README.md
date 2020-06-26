@@ -1,3 +1,6 @@
+
+[![Clojars Project](https://img.shields.io/clojars/v/dv/clj-utils.svg)](https://clojars.org/dv/clj-utils)
+
 this is a collection of code to help me get things done using clojure and clojurescript.
 
 Contains some code related to:
