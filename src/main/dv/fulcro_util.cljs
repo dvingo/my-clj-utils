@@ -421,6 +421,20 @@
 
 ;; [prop val]
 (s/def ::ident (s/tuple qualified-keyword? id?))
+(s/def ::coll-of-idents (s/coll-of ::ident :kind vector?))
+(defn coll-of-idents? [v] (s/valid? ::coll-of-idents v))
+
+(defn ref? [kw-id v]
+  (and (s/valid? ::ident v)
+    (= (first v) kw-id)))
+
+(defn ref->id
+  "ident [:prop id] => id"
+  [v] (cond-> v (s/valid? ::ident v) second))
+
+(defn ident->id
+  "ident [:prop id] => id"
+  [v] (cond-> v (s/valid? ::ident v) second))
 
 (defn server-error [msg]
   {:server/message msg

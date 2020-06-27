@@ -5,7 +5,6 @@
     [com.wsscode.pathom.core :as p]
     [com.wsscode.pathom.viz.ws-connector.core :as pathom-viz]
     [edn-query-language.core :as eql]
-    [mount.core :refer [defstate]]
     [taoensso.timbre :as log]
     [clojure.walk :as w]))
 

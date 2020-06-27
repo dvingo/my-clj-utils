@@ -26,6 +26,28 @@
 (s/def ::body (s/cat :thread-forms ::thread-forms))
 (s/def ::params (s/cat :name simple-symbol? :props ::props :body ::body))
 
+(defn id? [id]
+  (or (keyword? id) (uuid? id)))
+
+;; [prop val]
+(s/def ::ident (s/tuple qualified-keyword? id?))
+(s/def ::coll-of-idents (s/coll-of ::ident :kind vector?))
+(defn coll-of-idents? [v] (s/valid? ::coll-of-idents v))
+
+(defn ref?
+  ([v] (s/valid? ::ident v))
+  ([kw-id v]
+   (and (s/valid? ::ident v)
+     (= (first v) kw-id))))
+
+(defn ref->id
+  "ident [:prop id] => id"
+  [v] (cond-> v (s/valid? ::ident v) second))
+
+(defn ident->id
+  "ident [:prop id] => id"
+  [v] (cond-> v (s/valid? ::ident v) second))
+
 (comment
   (def body '(=> [params] (assoc-math* :math/game-state :not-running)))
   (s/conform ::body body)
@@ -116,11 +138,6 @@
        app/all-task-fields)))
 
 
-(defn id? [id]
-  (or (keyword? id) (uuid? id)))
-
-;; [prop val]
-(s/def ::ident (s/tuple qualified-keyword? id?))
 
 (defn server-error [msg]
   {:server/message msg
@@ -163,8 +180,10 @@
      [msg# (cond ~@args)]
      (server-error msg#)))
 
-(macroexpand-1 '(validity-check
-                  existing-habit? "A habit with that description already exists"
-                  (not current-user) "You must be logged in to create a habit."
-                  (not (s/valid? ::goals/habit props)) "Habit is invalid"
-                  (not (every? #(s/valid? ::goals/task %) tasks)) "Invalid tasks for habit."))
+(comment
+  ;(macroexpand-1 '(validity-check
+  ;                  existing-habit? "A habit with that description already exists"
+  ;                  (not current-user) "You must be logged in to create a habit."
+  ;                  (not (s/valid? ::goals/habit props)) "Habit is invalid"
+  ;                  (not (every? #(s/valid? ::goals/task %) tasks)) "Invalid tasks for habit."))
+  )

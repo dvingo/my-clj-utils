@@ -6,6 +6,7 @@
     [crux.api :as crux]
     [crux.backup :as backup]
     [dv.crux-node :refer [crux-node]]
+    [dv.fulcro-util :as fu]
     [taoensso.timbre :as log])
   (:import [java.util Date]
            [java.util UUID]
@@ -80,7 +81,7 @@
   ([entity-id field f]
    (update-entity crux-node entity-id field f))
   ([crux-node entity-id field f]
-   (let [ent (crux/entity (crux/db crux-node) entity-id)
+   (let [ent     (crux/entity (crux/db crux-node) entity-id)
          new-val (update ent field f)]
      (put crux-node new-val))))
 
@@ -110,10 +111,10 @@
   "
   ([fields] (crux-select crux-node fields))
   ([crux-node fields]
-   (let [clauses (field-kws->clauses fields)
+   (let [clauses     (field-kws->clauses fields)
          field-names (mapv (comp symbol name) fields)
-         query {:find field-names :where clauses}
-         tuples (q crux-node query)]
+         query       {:find field-names :where clauses}
+         tuples      (q crux-node query)]
      (mapv
        (fn [t]
          (apply hash-map (interleave fields t)))
@@ -230,26 +231,42 @@
   "Takes field and either one id or a collection of ids and returns
   one hash-map for one id, or collection of hash-maps for coll of ids.
   i.e. - Turn a collection of ids into maps so pathom can keep walking the graph."
-  [kw v]
-  (log/info "kw: " kw " v: " v)
+  ([v]
+   ;; [:goal/id "id"]
+   ;; [[:goal/id "id"] [:goal/id "id2"]]
+   (cond
+     (fu/ref? v)
+     (apply hash-map v)
 
-  (cond
-    (coll? v)
-    (do
-      (when-not (every? id? v)
-        (throw (Exception. (str "crux-util, join-ref passed a non-id property for field: " (pr-str kw)))))
-      (mapv #(hash-map kw %) v))
+     (fu/coll-of-idents? v)
+     (mapv #(apply hash-map %) v)
 
-    (id? v)
-    {kw v}
+     :other
+     (throw (Exception. (str "crux-util, unsupported type passed to join-ref: " (pr-str v))))))
 
-    (nil? v)
-    nil
+  ([kw v]
+   ;(log/info "kw: " kw " v: " v)
+   (cond
+     (coll? v)
+     (do
+       (when-not (every? id? v)
+         (throw (Exception. (str "crux-util, join-ref passed a non-id property for field: " (pr-str kw)))))
+       (mapv #(hash-map kw %) v))
 
-    :else
-    (throw (Exception. (str "crux-util, join-ref passed a non-id property for field: " (pr-str kw))))))
+     (id? v)
+     {kw v}
+
+     (nil? v)
+     nil
+
+     :else
+     (throw (Exception. (str "crux-util, join-ref passed a non-id property for field: " (pr-str kw)))))))
 
 (comment
+
+  (mapv #(apply hash-map %) [[:task/id #uuid"ec0c6600-5f33-4d2d-844e-7da15586edcb"]])
+  (join-ref [:task/id #uuid"ec0c6600-5f33-4d2d-844e-7da15586edcb"])
+  (join-ref [[:task/id #uuid"ec0c6600-5f33-4d2d-844e-7da15586edcb"] [:task/id #uuid"ec0c6600-5f33-4d2d-844e-7da15586edcb"]])
   (join-ref :task/id [#uuid"ec0c6600-5f33-4d2d-844e-7da15586edcb"])
   (join-ref :task/id #{#uuid"ec0c6600-5f33-4d2d-844e-7da15586edcb"})
   (join-ref :task/id #uuid"ec0c6600-5f33-4d2d-844e-7da15586edcb"))
@@ -298,7 +315,7 @@
 
   ([crux-node id-attr new-attrs]
    [some? keyword? map? => map?]
-   (let [entity-id (id-attr new-attrs)
+   (let [entity-id         (id-attr new-attrs)
          entity-prev-value (entity crux-node entity-id)]
      (merge entity-prev-value new-attrs {:crux.db/id entity-id}))))
 
@@ -328,10 +345,10 @@
 (defmacro gen-make-db-entity
   "Assoces crux id"
   [name-sym spec]
-  (let [nm (name spec)
+  (let [nm      (name spec)
         make-fn (symbol (str "make-" nm))
-        id-kw (keyword nm "id")
-        props (gensym "props")]
+        id-kw   (keyword nm "id")
+        props   (gensym "props")]
     `(>defn ~name-sym
        ~(str "Make a " nm " to insert into crux")
        [~props]
@@ -361,8 +378,8 @@
   ([crux-node entity-id new-attrs valid-time]
    {:pre [(or (vector? entity-id) (id? entity-id)) (map? new-attrs)]}
    (let [entity-prev-value (entity-with-prop crux-node entity-id)
-         _ (log/info "merge prev valu: " entity-prev-value)
-         new-val (merge entity-prev-value new-attrs)]
+         _                 (log/info "merge prev valu: " entity-prev-value)
+         new-val           (merge entity-prev-value new-attrs)]
      (log/info "merge entity new val: " new-val)
      (crux/submit-tx crux-node [[:crux.tx/put new-val valid-time]]))))
 
