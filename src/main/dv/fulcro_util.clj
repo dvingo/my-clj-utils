@@ -154,3 +154,11 @@
       (printf "Couldn't open '%s': %s\n" source (.getMessage e)))
     (catch RuntimeException e
       (printf "Error parsing edn file '%s': %s\n" source (.getMessage e)))))
+
+
+(defmacro validity-check
+  "Used in pathom resolvers and mutations."
+  [& args]
+  `(when-let
+     [msg# (cond ~@args)]
+     (fu/server-error msg#)))
