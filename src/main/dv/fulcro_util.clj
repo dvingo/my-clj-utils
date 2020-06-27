@@ -161,4 +161,10 @@
   [& args]
   `(when-let
      [msg# (cond ~@args)]
-     (fu/server-error msg#)))
+     (server-error msg#)))
+
+(macroexpand-1 '(validity-check
+                  existing-habit? "A habit with that description already exists"
+                  (not current-user) "You must be logged in to create a habit."
+                  (not (s/valid? ::goals/habit props)) "Habit is invalid"
+                  (not (every? #(s/valid? ::goals/task %) tasks)) "Invalid tasks for habit."))
