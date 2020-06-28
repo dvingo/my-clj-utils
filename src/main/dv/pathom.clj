@@ -4,6 +4,8 @@
     [com.wsscode.pathom.connect :as pc]
     [com.wsscode.pathom.core :as p]
     [com.wsscode.pathom.viz.ws-connector.core :as pathom-viz]
+    [io.pedestal.interceptor.chain :as chain]
+    [io.pedestal.interceptor.helpers :as ih]
     [edn-query-language.core :as eql]
     [taoensso.timbre :as log]
     [clojure.walk :as w]))
@@ -147,3 +149,85 @@
           (log-response! sensitive-keys resp))
         resp))))
 
+(def response-key :dv/response)
+
+(defn assoc-response [in-map response]
+  (assoc-in in-map [:env response-key] response))
+
+(defn get-response [in-map]
+  (get-in in-map [:env response-key]))
+
+(defn response-interceptor
+  [{:keys [opts env params] :as in}]
+  (let [{::pc/keys [mutate resolve]} opts
+        response (get-response in)]
+    (log/info "in response interceptor")
+
+    (if response
+      in
+      (if resolve
+        (assoc-response in (resolve env params))
+        (assoc-response in (mutate env params))))))
+
+(comment
+  (macroexpand-1 '(go 5))
+  (def i1 (i/interceptor {:enter (fn [c] (log/info "in i1") c)}))
+  (def i2 (i/interceptor {:enter (fn [c] (go (log/info "in i2")) c)}))
+  (def i3 (ih/before (fn [c] (log/info "in i3") c)))
+  (def my-ints [i1 i2 i3])
+  (chain/execute-only {} :enter my-ints)
+  ;(def my-chain ())
+  )
+
+(defn interceptors->pathom-transform
+  "Executes vector of interceptors on a pathom resolver or mutation.
+  Each interceptor is passed a single map (the environment) which has the keys:
+  :opts - The definition-time pathom resolver or mutation map of options.
+  :env - The pathom connect environment for the resolver or mutation passed by pathom at request-time.
+  :params - The params to the resolver or the mutation.
+
+  Responses are set on the env like so:
+
+  (assoc-response input-map {:my-pathom-resp :value})
+  "
+  [interceptors]
+  (fn pathom-transform*
+    [{::pc/keys [mutate resolve] :as opts}]
+    (let [interceptors (conj interceptors (ih/after response-interceptor))]
+      (log/info "In outer interceptors->transform" (keys opts))
+      (log/info "interceptors: ")
+      (pprint interceptors)
+      (cond
+        resolve
+        (assoc opts ::pc/resolve
+                    (fn [en params]
+                      (log/info "In resolve params: " params)
+                      (log/info "env is: ")
+                      (pprint (keys en))
+                      (let [respo (chain/execute {:opts opts :env en :params params} interceptors)]
+                        (log/info "respo: " (keys respo))
+                        respo
+                        (log/info "final response: " (get-response respo))
+                        (get-response respo))))
+
+        mutate
+        (assoc opts ::pc/mutate
+
+                    (fn [en params]
+                      (log/info "in mutate env keys: ")
+                      (pprint (sort (keys en)))
+                      (let [respo (chain/execute {:opts opts :env en :params params} interceptors)]
+                        (log/info "respo: " (keys respo))
+                        respo
+                        (log/info "final response: " (get-response respo))
+                        (get-response respo))))
+        :else (throw
+                (Exception.
+                  (str "Attempting to use interceptor transform on a map that is not a resolve or mutate.")))))))
+
+(defn unless-response
+  [f]
+  (fn unless-response* [in]
+    (if (get-response in)
+      in
+      (f in))))
