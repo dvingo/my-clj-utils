@@ -225,6 +225,8 @@
                 (Exception.
                   (str "Attempting to use interceptor transform on a map that is not a resolve or mutate.")))))))
 
+;; todo
+;; I think I can use pedestals chain/terminate-when for this type of logic
 (defn unless-response
   [f]
   (fn unless-response* [in]
