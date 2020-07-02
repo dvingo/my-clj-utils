@@ -12,7 +12,9 @@
            [java.util UUID]
            [crux.api ICruxDatasource ICruxAPI]))
 
-(defn id? [id]
+(defn id?
+  "True if keyword or uuid"
+  [id]
   (or (keyword? id) (uuid? id)))
 
 (defn crux-node? [n] (instance? ICruxAPI n))

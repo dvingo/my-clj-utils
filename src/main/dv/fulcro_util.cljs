@@ -24,6 +24,9 @@
     [taoensso.timbre :as log])
   (:require-macros [dv.fulcro-util]))
 
+(defn error [& msg]
+  (js/Error. (apply str msg)))
+
 ;; some thoughts:
 ;; I'm thinking of a floating widget on every component that you opt into that you click to toggle
 ;; the helpers - pprint props in a floating div etc.

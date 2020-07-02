@@ -10,6 +10,9 @@
     [java.util UUID]
     [java.io PushbackReader IOException]))
 
+(defn error [& msg]
+  (RuntimeException. (apply str msg)))
+
 (s/def ::props (s/coll-of simple-symbol? :count 1))
 
 (comment (s/conform ::props '[params]))
@@ -53,7 +56,10 @@
   (s/conform ::body body)
   (s/explain ::body body))
 
-(defn conj-vec [entity fkw val]
+(defn conj-vec
+  "Returns a map
+   adds an element val to the given entity at the prop fkw"
+  [entity fkw val]
   (update entity fkw #(conj (or % []) val)))
 
 (defn conj-set [entity fkw val]

@@ -62,9 +62,10 @@
         db         (tree->db Root wrapped true (f.merge/pre-merge-transform {}))]
     db))
 
-(defn upsert-app [{::keys                    [app persistence-key computed]
-                   :fulcro.inspect.core/keys [app-id]
-                   :as                       config}]
+(defn upsert-app
+  [{::keys                    [app persistence-key computed]
+    :fulcro.inspect.core/keys [app-id]
+    :as                       config}]
   (if-let [instance (and persistence-key (get @persistent-apps* persistence-key))]
     instance
     (let [app-options (cond-> app
@@ -79,7 +80,7 @@
           ;; TASK: explicit initial state handling
           instance    (fapp/fulcro-app app-options)]
 
-      (println "APP options : " app-options )
+      (println "APP options : " app-options)
       (if persistence-key (swap! persistent-apps* assoc persistence-key instance))
       instance)))
 
@@ -91,11 +92,11 @@
 (>defn mount-at
   [app {::keys [root wrap-root? persistence-key] :or {wrap-root? true}} node]
   [::fapp/app map? some? => any?]
-  (let [instance (if wrap-root? (make-root root) root)
-        new-app  (fapp/mount! app instance node {:initialize-state? false})]
-    (when persistence-key (swap! persistent-apps* assoc persistence-key new-app))
-    (println "returning new-app: "  new-app)
-    new-app))
+  (let [instance (if wrap-root? (make-root root) root)]
+    (fapp/mount! app instance node {:initialize-state? false})
+    (when persistence-key (swap! persistent-apps* assoc persistence-key app))
+    (println "returning new-app2: " app)
+    app))
 
 (defn inspector-set-app [card-id]
   (let [{::keys [app]} (data/active-card card-id)
@@ -139,15 +140,3 @@
         app    (upsert-app (assoc config :fulcro.inspect.core/app-id card-id))])
   (mount-at app config node)
   )
-
-
-;(defn fulcro-card [config]
-;  {::wsm/init #(fulcro-card-init % config)})
-
-;(s/fdef fulcro-card
-;  :args (s/cat :config (s/keys
-;                         :req [::root]
-;                         :opt [::wrap-root?
-;                               ::app
-;                               ::initial-state]))
-;  :ret ::wsm/card-instance)

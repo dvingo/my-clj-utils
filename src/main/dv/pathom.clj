@@ -194,9 +194,9 @@
   (fn pathom-transform*
     [{::pc/keys [mutate resolve] :as opts}]
     (let [interceptors (conj interceptors (ih/after response-interceptor))]
-      (log/info "In outer interceptors->transform" (keys opts))
-      (log/info "interceptors: ")
-      (pprint interceptors)
+      ;(log/info "In outer interceptors->transform" (keys opts))
+      ;(log/info "interceptors: ")
+      ;(pprint interceptors)
       (cond
         resolve
         (assoc opts ::pc/resolve
