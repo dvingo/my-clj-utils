@@ -403,19 +403,20 @@
 (defn map-table
   "show table of form fields for a component with value and validation state.
   validator component instance"
-  [m show?]
-  (when show?
-    (comp/fragment
-      (dom/h4 :.ui.violet.message "Map of data")
-      (dom/table :.ui.celled.table.striped.yellow
-        (dom/thead
-          (dom/tr (dom/th "field") (dom/th "value")))
-        (dom/tbody
-          (map (fn [[k v]]
-                 (dom/tr {:key (str k)}
-                   (dom/td (str k))
-                   (dom/td (pr-str v))))
-            m))))))
+  ([m show?] (map-table "Map of data" m show?))
+  ([label m show?]
+   (when show?
+     (comp/fragment
+       (dom/h4 :.ui.violet.message label)
+       (dom/table :.ui.celled.table.striped.yellow
+         (dom/thead
+           (dom/tr (dom/th "field") (dom/th "value")))
+         (dom/tbody
+           (map (fn [[k v]]
+                  (dom/tr {:key (str k)}
+                    (dom/td (str k))
+                    (dom/td (pr-str v))))
+             m)))))))
 
 (defstyled hover-hand :div {":hover" {:cursor "pointer"}})
 
