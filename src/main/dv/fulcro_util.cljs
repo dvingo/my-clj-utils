@@ -16,7 +16,7 @@
     [com.fulcrologic.fulcro.ui-state-machines :as sm :refer [defstatemachine]]
     [com.fulcrologic.guardrails.core :refer [>defn => ?]]
     [com.fulcrologic.semantic-ui.modules.transition.ui-transition :refer [ui-transition]]
-    [dv.cljs-emotion :refer [defstyled]]
+    [dv.cljs-emotion-reagent :refer [defstyled]]
     [edn-query-language.core :as eql]
     [goog.events :as events]
     [goog.object :as gobj]

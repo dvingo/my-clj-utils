@@ -108,7 +108,9 @@
        (assoc-math* :math/time-left countdown-seconds))))
 
 (defmacro deflocalmutation
-  "name and body, fn that takes state map and props + env in one map"
+  "name and body, fn that takes state map and props + env in one map
+  defs a fn that performs a transact!! this for you"
+
   [name f]
   `(let []
      (defmutation ~name
