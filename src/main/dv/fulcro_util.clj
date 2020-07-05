@@ -3,7 +3,7 @@
     [clojure.java.io :as io]
     [clojure.spec.alpha :as s]
     [clojure.edn :as edn]
-    [com.fulcrologic.fulcro.components :as comp :refer [defsc]]
+    [com.fulcrologic.fulcro.components :as c :refer [defsc]]
     [com.fulcrologic.fulcro.mutations :refer [defmutation]]
     [com.fulcrologic.guardrails.core :refer [>defn =>]])
   (:import
@@ -124,10 +124,10 @@
 
      (defn ~(symbol (str name "!"))
        ([this#]
-        (comp/transact!! this# [(~name)]))
+        (c/transact!! this# [(~name)]))
        ([this# props#]
         (assert (map? props#))
-        (comp/transact!! this# [(~name props#)])))))
+        (c/transact!! this# [(~name props#)])))))
 
 ;; todo the idea here is to generate a component for the usual form save interaction
 ;; components that ask for all the props and activate state machines that handle the logic.

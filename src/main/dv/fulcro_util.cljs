@@ -8,7 +8,7 @@
     [clojure.walk :as walk]
     [com.fulcrologic.fulcro.algorithms.form-state :as fs]
     [com.fulcrologic.fulcro.algorithms.merge :as merge]
-    [com.fulcrologic.fulcro.components :as comp :refer [defsc]]
+    [com.fulcrologic.fulcro.components :as c :refer [defsc]]
     [com.fulcrologic.fulcro.dom :as dom :refer [div ul li p h3 button]]
     [com.fulcrologic.fulcro.dom.events :as e]
     [com.fulcrologic.fulcro.mutations :as m :refer [defmutation]]
@@ -131,7 +131,7 @@
   {:initLocalState    (fn [this props]
                         (gobj/set this "inputRef" (react/createRef)))
    :componentDidMount (fn [this]
-                        (when (:autofocus? (comp/props this))
+                        (when (:autofocus? (c/props this))
                           (-> this
                             (gobj/getValueByKeys "inputRef" "current")
                             (.focus))))}
@@ -140,7 +140,7 @@
       (dissoc props :autofocus?)
       {:ref (gobj/get this "inputRef")})))
 
-(def ui-auto-focus-input (comp/factory AutoFocusInput))
+(def ui-auto-focus-input (c/factory AutoFocusInput))
 
 (defn field [{:keys [label checked? valid? error-message inline-err?]
               :or   {inline-err? false}
@@ -174,7 +174,7 @@
 
 (defn mark-complete!
   [this field]
-  (comp/transact!! this [(fs/mark-complete! {:field field})]))
+  (c/transact!! this [(fs/mark-complete! {:field field})]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Server error and messages tracking mutation helpers
@@ -203,7 +203,7 @@
         opts      (or opts {})
         on-change (or (:onChange opts) identity)
         opts      (dissoc opts :onChange)
-        cls       (comp/react-type this)
+        cls       (c/react-type this)
         props     (merge
                     {:label         label
                      :inline-err?   true
@@ -322,7 +322,7 @@
 (defn notification [{:keys [ui/submit-state ui/server-message] :as props}]
   (let [[success? failed?] (map #{submit-state} [:state/success :state/failed])
         submit-done? (boolean (or success? failed?))]
-    (comp/fragment
+    (c/fragment
       (ui-transition {:visible submit-done? :animation "scale" :duration 500}
         (dom/div :.ui.floating.message {:classes [(when success? "positive")
                                                   (when failed? "negative")]}
@@ -331,7 +331,7 @@
                                :state/success "Successfuly saved"
                                "")))))))
 (defn get-props-keys [c]
-  (->> (comp/get-query c)
+  (->> (c/get-query c)
     (eql/query->ast)
     :children
     (map :key)))
@@ -351,9 +351,9 @@
   "show table of fields for a component with value ."
   [com show?]
   (when show?
-    (let [props (comp/props com)]
+    (let [props (c/props com)]
       (when (some? props)
-        (let [ident     (comp/get-ident com props)
+        (let [ident     (c/get-ident com props)
               prop-keys (get-props-keys com)
               rows      (map #(vector % (get props %)) prop-keys)]
           (dom/div nil
@@ -364,11 +364,11 @@
   "show table of form fields for a component with value and validation state.
   validator component instance"
   [validator com show?]
-  (let [props      (comp/props com)
-        {:keys [form-fields]} (comp/component-options com)
-        form-ident (comp/get-ident com)]
+  (let [props      (c/props com)
+        {:keys [form-fields]} (c/component-options com)
+        form-ident (c/get-ident com)]
     (when show?
-      (comp/fragment
+      (c/fragment
         (dom/h4 :.ui.violet.message (str "Form fields for " (pr-str form-ident) ":"))
         (dom/table :.ui.celled.table.striped.yellow
           (dom/thead
@@ -380,6 +380,15 @@
                     (dom/td (pr-str (props %)))
                     (dom/td (pr-str (validator props %))))
               form-fields)))))))
+
+(defn dirty-fields
+  "Returns the actual map of dirty fields for the current component."
+  [this]
+  (let [props (c/props this)
+        ident (c/ident this props)]
+    (get
+      (fs/dirty-fields props false)
+      ident)))
 
 (defn field-valid? [validator props field]
   (let [v (validator props field)]
@@ -406,7 +415,7 @@
   ([m show?] (map-table "Map of data" m show?))
   ([label m show?]
    (when show?
-     (comp/fragment
+     (c/fragment
        (dom/h4 :.ui.violet.message label)
        (dom/table :.ui.celled.table.striped.yellow
          (dom/thead
