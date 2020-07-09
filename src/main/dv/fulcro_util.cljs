@@ -437,13 +437,24 @@
 (s/def ::coll-of-idents (s/coll-of ::ident :kind vector?))
 (defn coll-of-idents? [v] (s/valid? ::coll-of-idents v))
 
-(defn ref? [kw-id v]
-  (and (s/valid? ::ident v)
-    (= (first v) kw-id)))
+(defn ref?
+  ([v] (s/valid? ::ident v))
+  ([kw-id v]
+   (and (s/valid? ::ident v)
+     (= (first v) kw-id))))
 
 (defn ref->id
   "ident [:prop id] => id"
   [v] (cond-> v (s/valid? ::ident v) second))
+
+(>defn ->ident
+  "Given a kw that is the id prop, and a map or id, return ident."
+  ([kw]
+   [keyword? => fn?]
+   (fn [m] (->ident kw m)))
+  ([kw v]
+   [keyword? (s/or :id id? :m map?) => ::ident]
+   [kw (if (map? v) (kw v) v)]))
 
 (defn ident->id
   "ident [:prop id] => id"

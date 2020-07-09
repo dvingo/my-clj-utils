@@ -17,7 +17,7 @@
   (let [nm   (name spec)
         idkw (keyword nm "id")
         nmkw (keyword nm)]
-    `(s/or :id fu/id? ~(keyword (str nm "-ref")) (s/map-of ~idkw fu/id?) ~nmkw ~spec)))
+    `(s/or :id fu/ref? ~(keyword (str nm "-ref")) (s/map-of ~idkw fu/id?) ~nmkw ~spec)))
 
 (comment
   (macroexpand-1 '(to-one-ref-type ::habit)))

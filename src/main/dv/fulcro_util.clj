@@ -5,7 +5,7 @@
     [clojure.edn :as edn]
     [com.fulcrologic.fulcro.components :as c :refer [defsc]]
     [com.fulcrologic.fulcro.mutations :refer [defmutation]]
-    [com.fulcrologic.guardrails.core :refer [>defn =>]])
+    [com.fulcrologic.guardrails.core :refer [>defn => |]])
   (:import
     [java.util UUID]
     [java.io PushbackReader IOException]))
@@ -42,6 +42,15 @@
   ([kw-id v]
    (and (s/valid? ::ident v)
      (= (first v) kw-id))))
+
+(>defn ->ident
+  "Given a kw that is the id prop, and a map or id, return ident."
+  ([kw]
+   [keyword? => fn?]
+   (fn [m] (->ident kw m)))
+  ([kw v]
+   [keyword? (s/or :id id? :m map?) => ::ident]
+   [kw (if (map? v) (kw v) v)]))
 
 (defn ref->id
   "ident [:prop id] => id"
