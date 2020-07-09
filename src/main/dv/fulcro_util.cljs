@@ -1,5 +1,5 @@
 (ns dv.fulcro-util
-  (:refer-clojure :exclude [uuid])
+  (:refer-clojure :exclude [uuid ident?])
   (:require
     ["react" :as react]
     [cljs.core.async :refer [<! chan put! go go-loop]]
@@ -442,6 +442,13 @@
   ([kw-id v]
    (and (s/valid? ::ident v)
      (= (first v) kw-id))))
+
+(defn ident? [v] (s/valid? ::ident v))
+
+(s/def ::prop-path (s/tuple qualified-keyword? id? qualified-keyword?))
+
+(defn prop-path? [v]
+  (s/valid? ::prop-path v))
 
 (defn ref->id
   "ident [:prop id] => id"
