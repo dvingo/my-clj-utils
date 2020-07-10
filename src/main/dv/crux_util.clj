@@ -219,9 +219,10 @@
   )
 
 (defn domain-entity
-  ([id] (domain-entity crux-node id))
+  ([id]
+   (domain-entity crux-node (if (fu/ref? id) (second id) id)))
   ([crux-node id]
-   (merge (entity crux-node id)
+   (merge (entity crux-node (if (fu/ref? id) (second id) id))
      (get-timestamps crux-node id))))
 
 (comment
@@ -230,7 +231,13 @@
 ;; Pathom helpers
 
 (defn join-ref
-  "Takes field and either one id or a collection of ids and returns
+  "
+  input is one of:
+
+  - ident [:task/id 'id'] => {:task/id 'id'}
+  - coll of idents [[:task/id 'id']] => [{:task/id 'id'}]
+
+  Takes field and either one id or a collection of ids and returns
   one hash-map for one id, or collection of hash-maps for coll of ids.
   i.e. - Turn a collection of ids into maps so pathom can keep walking the graph."
   ([v]
@@ -247,13 +254,16 @@
      (throw (Exception. (str "crux-util, unsupported type passed to join-ref: " (pr-str v))))))
 
   ([kw v]
-   ;(log/info "kw: " kw " v: " v)
+   (log/info "kw: " kw " v: " v)
    (cond
+     (fu/ref? v)
+     (apply hash-map v)
+
      (coll? v)
      (do
-       (when-not (every? id? v)
-         (throw (Exception. (str "crux-util, join-ref passed a non-id property for field: " (pr-str kw)))))
-       (mapv #(hash-map kw %) v))
+       (when-not (every? fu/ref? v)
+         (throw (Exception. (str "err1 crux-util, join-ref passed a non-ident value for field: " (pr-str kw) " value: " (pr-str v)))))
+       (mapv #(apply hash-map %) v))
 
      (id? v)
      {kw v}
@@ -262,7 +272,7 @@
      nil
 
      :else
-     (throw (Exception. (str "crux-util, join-ref passed a non-id property for field: " (pr-str kw)))))))
+     (throw (Exception. (str "err2 crux-util, join-ref passed a non-id property for field: " (pr-str kw) " value: " (pr-str v)))))))
 
 (comment
 
