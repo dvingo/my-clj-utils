@@ -97,6 +97,13 @@
 
 (s/def ::state simple-symbol?)
 
+(defn deep-merge [x y]
+  (cond
+    (and (map? x) (map? y)) (merge-with deep-merge x y)
+    (and (map? x) (nil? y)) (merge x y)
+    :else y))
+
+
 (defmacro ->s!
   "(->s! state
      (assoc )
