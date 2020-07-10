@@ -100,9 +100,9 @@
 (defn deep-merge [x y]
   (cond
     (and (map? x) (map? y)) (merge-with deep-merge x y)
-    (and (map? x) (nil? y)) (merge x y)
+    (and (map? x) (nil? y)) x
+    (and (map? y) (nil? x)) y
     :else y))
-
 
 (defmacro ->s!
   "(->s! state
