@@ -166,9 +166,9 @@
   (every? entity-id-with-prop coll))
 
 (defn entity
-  ([entity-id] (entity crux-node entity-id))
+  ([entity-id] (entity crux-node (if (fu/ref? entity-id) (second entity-id) entity-id)))
   ([crux-node entity-id]
-   (crux/entity (crux/db crux-node) entity-id)))
+   (crux/entity (crux/db crux-node) (if (fu/ref? entity-id) (second entity-id) entity-id))))
 
 (s/def ::tx-timestamps (? (s/map-of #{:db/updated-at :db/created-at} (? inst?))))
 
@@ -260,10 +260,15 @@
      (apply hash-map v)
 
      (coll? v)
-     (do
-       (when-not (every? fu/ref? v)
-         (throw (Exception. (str "err1 crux-util, join-ref passed a non-ident value for field: " (pr-str kw) " value: " (pr-str v)))))
-       (mapv #(apply hash-map %) v))
+     (cond
+       (every? #(and (map? %) (contains? % kw)) v)
+       (mapv #(select-keys % [kw]) v)
+
+       (every? fu/ref? v)
+       (mapv #(apply hash-map %) v)
+
+       :else (when-not (every? fu/ref? v)
+               (throw (Exception. (str "err1 crux-util, join-ref passed a non-ident value for field: " (pr-str kw) " value: " (pr-str v))))))
 
      (id? v)
      {kw v}
