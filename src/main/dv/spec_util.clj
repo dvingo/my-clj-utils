@@ -2,7 +2,8 @@
   (:refer-clojure :exclude [keys])
   (:require
     [clojure.spec.alpha :as s]
-    [dv.fulcro-util :as fu]))
+    [dv.fulcro-util :as fu]
+    [taoensso.timbre :as log]))
 
 (defmacro to-many-ref-type
   [spec]
@@ -27,7 +28,7 @@
 (defmacro get-global-keys [] global-keys)
 
 (defmacro def-domain-map
-  "Return s/keys :req for fields"
+  "Return s/keys :req for fields supports passing in symbols for keys"
   ([spec required]
    (let [req (eval required)]
      `(s/def ~spec (s/keys :req ~req))))
@@ -35,6 +36,17 @@
    (let [req        (eval required)
          opt        (eval opt)
          global-opt (eval global-keys)]
+     `(s/def ~spec (s/keys :req ~req :opt ~(into opt global-opt))))))
+
+(defmacro def-domain-map2
+  "Return s/keys :req for fields key vectors must be literals"
+  ([spec required]
+   (let [req required]
+     `(s/def ~spec (s/keys :req ~req))))
+  ([spec required opt]
+   (let [req        required
+         opt        opt
+         global-opt global-keys]
      `(s/def ~spec (s/keys :req ~req :opt ~(into opt global-opt))))))
 
 (comment
@@ -66,4 +78,59 @@
 
   ;; can use spec to parse the output of spec/form s/cat + friends
   )
+
+
+(comment
+
+  (str (symbol (name :be.produktiv.ad-hoc-tasks.ad-hoc-tasks-data-model/ad-hoc-task)))
+  )
+
+(defmacro defentity
+  "kw "
+  [spec-kw kw-required required-keys kw-optional optional-keys]
+  (let [all-keys (into required-keys optional-keys)
+        sym-str  (name spec-kw)
+        sym      (symbol sym-str)
+        id-kw    (keyword sym-str "id")]
+    (log/info "here 1")
+    `(let []
+       (def ~(symbol (str "all-" sym "-keys")) ~(into required-keys optional-keys))
+       (def ~(symbol (str "db-" sym "-keys")) ~(into all-keys global-keys))
+
+       ~(log/info "here 2")
+       ;~(def-domain-map2 spec-sym required-keys optional-keys)
+
+       ;; todo arglist
+       (def ~(symbol (str sym "-ident"))
+         ~(str "Returns [" sym "/id] for the passed in map or id")
+         (fu/->ident ~id-kw))
+
+       ;`(>defn make-task
+       ;  [{~(keyword sym-str "keys") ~all-keys
+       ;    :or        {id (fu/uuid)}}]
+       ;  [map? => ~spec-kw]
+       ;  (cond->
+       ;    {:task/id          id
+       ;     :task/description description}
+       ;    ~(interleave...)
+       ;    (some? global?) (assoc :task/global? global?)
+       ;    (some? duration) (assoc :task/duration duration)
+       ;    (some? scheduled-at) (assoc :task/scheduled-at scheduled-at)))
+       ;
+       ;(defn fresh-task [props]
+       ;  (make-task (merge props {:task/id (fu/uuid)})))
+
+       ;#?(:clj (cu/gen-make-db-entity make-db-task ::task))
+
+       )))
+
+
+
+(comment
+  (macroexpand-1
+    '(defentity :be.produktiv.ad-hoc-tasks.ad-hoc-tasks-data-model/ad-hoc-task
+       :required [:task/id :task/description]
+       :optional [:task/duration :task/scheduled-at]
+
+       )))
 

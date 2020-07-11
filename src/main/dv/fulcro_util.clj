@@ -124,7 +124,8 @@
        (assoc-math* :math/time-left countdown-seconds))))
 
 (defmacro deflocalmutation
-  "name and body, fn that takes state map and props + env in one map
+  "uses transact!!
+  name and body, fn that takes state map and props + env in one map
   defs a fn that performs a transact!! this for you"
 
   [name f]
@@ -144,6 +145,29 @@
        ([this# props#]
         (assert (map? props#))
         (c/transact!! this# [(~name props#)])))))
+
+(defmacro deflocalmutation2
+  "uses transact!
+  name and body, fn that takes state map and props + env in one map
+  defs a fn that performs a transact!! this for you"
+
+  [name f]
+  `(let []
+     (defmutation ~name
+       [params#]
+       (~'action [{:keys [~'state ~'ref] :as env#}]
+         (do
+           ;(log/info "IN MUTATION " ~name " params: " params#)
+           (swap! ~'state
+             (fn [s#]
+               (~f s# (merge env# params#)))))))
+
+     (defn ~(symbol (str name "!"))
+       ([this#]
+        (c/transact! this# [(~name)]))
+       ([this# props#]
+        (assert (map? props#))
+        (c/transact! this# [(~name props#)])))))
 
 ;; todo the idea here is to generate a component for the usual form save interaction
 ;; components that ask for all the props and activate state machines that handle the logic.
