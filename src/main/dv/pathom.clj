@@ -194,32 +194,17 @@
   (fn pathom-transform*
     [{::pc/keys [mutate resolve] :as opts}]
     (let [interceptors (conj interceptors (ih/after response-interceptor))]
-      ;(log/info "In outer interceptors->transform" (keys opts))
-      ;(log/info "interceptors: ")
-      ;(pprint interceptors)
       (cond
         resolve
         (assoc opts ::pc/resolve
                     (fn [en params]
-                      (log/info "In resolve params: " params)
-                      (log/info "env is: ")
-                      (pprint (keys en))
                       (let [respo (chain/execute {:opts opts :env en :params params} interceptors)]
-                        (log/info "respo: " (keys respo))
-                        respo
-                        (log/info "final response: " (get-response respo))
                         (get-response respo))))
 
         mutate
         (assoc opts ::pc/mutate
-
                     (fn [en params]
-                      (log/info "in mutate env keys: ")
-                      (pprint (sort (keys en)))
                       (let [respo (chain/execute {:opts opts :env en :params params} interceptors)]
-                        (log/info "respo: " (keys respo))
-                        respo
-                        (log/info "final response: " (get-response respo))
                         (get-response respo))))
         :else (throw
                 (Exception.

@@ -353,7 +353,8 @@
           {:find  '[t]
            :where [['t id-kw 'id]
                    ['t f-kw v]]
-           :args  (mapv #(hash-map 'id %) col)})))))
+           :args  (mapv
+                    #(hash-map 'id (fu/ident->id %)) col)})))))
 
 (comment
   (def get-task-by-description (mk-get-id-from-coll :task/id :task/description))
