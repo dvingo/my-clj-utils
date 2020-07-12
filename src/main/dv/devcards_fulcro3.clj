@@ -1,7 +1,9 @@
 (ns dv.devcards-fulcro3
   (:require
     [devcards.core :as dc :refer (defcard)]
-    [sablono.core :refer [html]])
+    [reagent.core]
+    [sablono.core :refer [html]]
+    [taoensso.timbre :as log])
   (:import [java.util UUID]))
 
 (defmacro make-card
@@ -9,9 +11,11 @@
   Takes symbol of fulcro component and options."
   ([component]
    `(make-card ~component {}))
-  ([component {::keys [wrap-root? root-state use-sablono?]
-               :or    {wrap-root? true use-sablono? true}
+  ([component {::keys [wrap-root? root-state use-sablono? use-reagent?]
+               :or    {wrap-root? true}
                :as    opts}]
+   (log/info "use-reagent? " use-reagent?)
+   (log/info "use-sablono? " use-sablono?)
    (let [id     (UUID/randomUUID)
          app    (symbol (str (name component) "devcards-fulcro3-app"))
          config (gensym "config")]
@@ -19,9 +23,11 @@
             {::root                      ~component
              ::wrap-root?                ~wrap-root?
              ::persistence-key           ~id
-             ::app                       (cond-> {} ~use-sablono?
-                                           (assoc :render-middleware
-                                                  (fn [_# render#] (sablono.core/html (render#)))))
+             ::app                       (cond-> {}
+                                           ~use-reagent?
+                                           (assoc :render-middleware (fn [_# render#] (reagent.core/as-element (render#))))
+                                           ~use-sablono?
+                                           (assoc :render-middleware (fn [_# render#] (sablono.core/html (render#)))))
              :fulcro.inspect.core/app-id ~id}]
         (defonce ~app (upsert-app ~config))
         ;(println "App name is : " '~app)

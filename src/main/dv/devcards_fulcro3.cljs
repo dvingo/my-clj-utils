@@ -48,7 +48,7 @@
                               factory  (fc/factory Root)
                               computed (fc/shared this ::computed)]
                           (if (seq root)
-                            (factory (cond-> root computed (fc/computed computed))))))})))
+                             (factory (cond-> root computed (fc/computed computed))))))})))
 
 (defn fulcro-initial-state [{::keys [initial-state wrap-root? root root-state]
                              :or    {wrap-root? true initial-state {}}}]
@@ -80,7 +80,7 @@
           ;; TASK: explicit initial state handling
           instance    (fapp/fulcro-app app-options)]
 
-      (println "APP options : " app-options)
+      ;(println "APP options : " app-options)
       (if persistence-key (swap! persistent-apps* assoc persistence-key instance))
       instance)))
 
@@ -95,7 +95,6 @@
   (let [instance (if wrap-root? (make-root root) root)]
     (fapp/mount! app instance node {:initialize-state? false})
     (when persistence-key (swap! persistent-apps* assoc persistence-key app))
-    (println "returning new-app2: " app)
     app))
 
 (defn inspector-set-app [card-id]
