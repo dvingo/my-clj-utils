@@ -93,7 +93,7 @@
                             (sm/apply-action #(merge/merge-component % form-cls entity :append append))
                             (sm/apply-action #(fu/reset-form* % (sm/actor->ident env :actor/form)))
                             (sm/assoc-aliased :server-msg "Success")
-                            (sm/set-timeout :clear-msg-timer :event/reset {} 2000)
+                            (sm/set-timeout :clear-msg-timer :event/reset {:entity entity} 2000)
                             (sm/activate :state/success))))}
       :event/failed  {::sm/handler
                       (global-handler
@@ -109,7 +109,7 @@
      {:event/reset
       {::sm/handler
        (global-handler
-         (fn [env]
+         (fn [{{:keys [entity]} ::sm/event-data :as env}]
            (log/info "HANDLING RESET")
            (let [instance (actor->inst :actor/form env)]
              (if (comp/mounted? instance)
@@ -119,7 +119,7 @@
                      (comp/transact! instance `[(~reset-mutation)]))
                    (when-let [on-reset (sm/retrieve env :on-reset)]
                      (log/info "Calling form reset fn")
-                     (js/setTimeout on-reset))
+                     (js/setTimeout #(on-reset entity)))
                    (sm/activate env :state/not-submitting))
                (do (println "NOT mounted")
                    env)))))}}}
