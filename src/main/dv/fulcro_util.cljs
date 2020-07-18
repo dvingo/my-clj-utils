@@ -499,3 +499,17 @@
                              (log/trace "Parser output: " out)
                              out)))}))]
     {:transmit! (fn [this send-node] (transmit! this send-node))}))
+
+(defn has-field?
+  "Returns true if a value is not nil and not :com.fulcrologic.fulcro.algorithms.merge/not-found"
+  [v]
+  (and
+    (some? v)
+    (not= ::merge/not-found v)))
+
+(defn registry-key->class
+  [kw-or-sym]
+  (if-let [cls (c/registry-key->class kw-or-sym)]
+    cls
+    (throw (js/Error. (str "Class component: " kw-or-sym
+                        " is not in the registry, you probably need to require the namespace it lives in.")))))
