@@ -2,7 +2,7 @@
   (:require
     [clojure.pprint :refer [pprint]]
     [clojure.spec.alpha :as s]
-    [com.fulcrologic.guardrails.core :refer [>defn >def | => ?]]
+    [com.fulcrologic.guardrails.core :refer [>defn >defn- >def | => ?]]
     [crux.api :as crux]
     [crux.backup :as backup]
     [dv.crux-node :refer [crux-node]]
@@ -254,7 +254,6 @@
      (throw (Exception. (str "crux-util, unsupported type passed to join-ref: " (pr-str v))))))
 
   ([kw v]
-   (log/info "kw: " kw " v: " v)
    (cond
      (fu/ref? v)
      (apply hash-map v)
@@ -296,7 +295,6 @@
   [field-tuples id]
   [(s/coll-of (s/tuple qualified-keyword? qualified-keyword?) :type vector?) id? => map?]
   (let [ent (domain-entity id)]
-    (log/info "Expanding entity: " ent)
     (reduce
       (fn [ent [prop id-kw]]
         (update ent prop #(join-ref id-kw %)))
@@ -306,7 +304,6 @@
 (>defn pathom-join
   [field-tuples entity]
   [(s/coll-of (s/tuple qualified-keyword? qualified-keyword?) :type vector?) map? => map?]
-  (log/info "pathom-join entity: " entity)
   (reduce
     (fn [ent [prop id-kw]]
       (update ent prop #(join-ref id-kw %)))
@@ -432,6 +429,45 @@
   (dorun (map
            #(delete (field %))
            (crux-select crux-node [field]))))
+
+;; todo could make this support ids or idents
+
+(>defn- get-nested-ids*
+  "Helper for nested ids"
+  [property input output]
+  [qualified-keyword? (s/coll-of fu/ref? :kind vector?) (s/coll-of uuid? :kind vector?)
+   =>
+   (s/coll-of uuid? :kind vector?)]
+  (if (empty? input)
+    output
+    (let [entity-id   (second (first input))
+          remaining   (rest input)
+          entity      (entity entity-id)
+          subentities (get entity property)]
+
+      (if (not (empty? subentities))
+        (recur property
+          (vec (concat remaining subentities)) ;; new input
+          (into (mapv second subentities) output)) ;; new output
+        (recur property remaining output)))))
+
+(>defn get-nested-ids
+  "Return a depth first ordered vector of ids for all entities for the idents passed in.
+
+  - property: keyword for nested recursive property
+  - input: ident or a vector of idents to start at
+
+  - returns: vector of ids
+  "
+  [property input]
+  [qualified-keyword?
+   (s/or
+     :coll (s/coll-of fu/ref? :kind vector?)
+     :id fu/ref?) => (s/coll-of uuid? :kind vector?)]
+  (get-nested-ids* property (if (fu/ref? input) [input] input) []))
+
+(comment
+  (get-nested-ids :ad-hoc-task/subtasks [[:ad-hoc-task/id #uuid "68203a9c-046c-432b-adb5-ff26873f9ab2"]] []))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Data migration

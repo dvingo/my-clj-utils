@@ -172,6 +172,12 @@
     (fs/pristine->entity* ident)
     (fs/clear-complete* ident)))
 
+(defn reset-form! [this]
+  (c/transact! this [(fs/reset-form!)]))
+
+(defn reset-form!! [this]
+  (c/transact!! this [(fs/reset-form!)]))
+
 (defn mark-complete!
   [this field]
   (c/transact!! this [(fs/mark-complete! {:field field})]))
