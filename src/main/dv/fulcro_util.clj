@@ -51,8 +51,10 @@
      ([m] (->ident kw m))
      ([id v] [kw id v])))
   ([kw v]
-   [keyword? (s/or :id id? :m map?) => ::ident]
-   [kw (if (map? v) (kw v) v)]))
+   [keyword? (s/or :id id? :m map? :ident ::ident) => ::ident]
+   (if (ref? kw v)
+     v
+     [kw (if (map? v) (kw v) v)])))
 
 (defn ref->id
   "ident [:prop id] => id"
