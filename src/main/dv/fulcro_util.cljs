@@ -27,6 +27,17 @@
 (defn error [& msg]
   (js/Error. (apply str msg)))
 
+;; todo this doesn't handle nesting
+(defn remove-missing
+  "Remove properties from map which have value ::merge/not-found"
+  [m]
+  (into {}
+    (filter (fn [[_ v]] (not= ::merge/not-found v))
+      m)))
+
+(comment
+  (remove-missing {:field-1 ::merge/not-found}))
+
 ;; some thoughts:
 ;; I'm thinking of a floating widget on every component that you opt into that you click to toggle
 ;; the helpers - pprint props in a floating div etc.
@@ -324,6 +335,12 @@
 (defn on-server? []
   (not (exists? js/window)))
 
+(defn map->vec [m]
+  (vec (mapcat identity m)))
+
+(comment
+  (map->vec {:a 5 :b 6})
+  (map->vec nil))
 
 (defn notification [{:keys [ui/submit-state ui/server-message] :as props}]
   (let [[success? failed?] (map #{submit-state} [:state/success :state/failed])
@@ -395,6 +412,13 @@
     (get
       (fs/dirty-fields props false)
       ident)))
+
+(defmutation entity->pristine!* [_]
+  (action [{:keys [ref state]}]
+    (swap! state #(fs/entity->pristine* % ref))))
+
+(defn entity->pristine! [this]
+  (c/transact! this [(entity->pristine!*)]))
 
 (defn field-valid? [validator props field]
   (let [v (validator props field)]

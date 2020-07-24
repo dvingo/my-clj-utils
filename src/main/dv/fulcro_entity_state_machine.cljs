@@ -13,7 +13,8 @@
     [com.fulcrologic.guardrails.core :refer [>defn => ?]]
     [dv.fulcro-util :as fu]
     [goog.object :as gobj]
-    [taoensso.timbre :as log]))
+    [taoensso.timbre :as log]
+    [com.fulcrologic.fulcro.components :as c]))
 
 (defn actor->inst [actor-kw env]
   (comp/ident->any (::sm/app env) (sm/actor->ident env actor-kw)))
@@ -37,28 +38,38 @@
 (defn target [state]
   {::sm/handler (activate state)})
 
+(comment
+  ;; turn map in to k v pairs in vec
+  (vec (mapcat identity {:a 5 :b 5}))
+  )
+
 (defn handle-submit
   [{::sm/keys [event-data] :as env}]
-  (let [{:keys [entity remote-mutation append on-reset-mutation on-reset]} event-data
-        form-cls (sm/actor-class env :actor/form)
-        item-cls (sm/actor-class env :actor/new-item)]
+  (let [{:keys [entity remote-mutation mutation target on-reset-mutation on-reset]} event-data
+        form-cls      (sm/actor-class env :actor/form)
+        form-instance (actor->inst :actor/form env)
+        item-cls      (sm/actor-class env :actor/new-item)]
+    ;(log/info "HANDLE SUBMIT mutation: " mutation)
     ;(log/info "Event data is: " event-data)
     ;(log/info "ENV " env)
 
+    (when mutation (c/transact! form-instance `[(~mutation)]))
     (-> env
       (cond->
         (some? on-reset-mutation) (sm/store :on-reset-mutation on-reset-mutation)
         (some? on-reset) (sm/store :on-reset on-reset))
       (sm/assoc-aliased :server-msg "")
-      (sm/trigger-remote-mutation
-        :actor/form
-        remote-mutation
-        (merge
-          {::m/returning    item-cls
-           ::sm/ok-event    :event/success
-           ::sm/ok-data {:form-cls form-cls :entity entity :append append}
-           ::sm/error-event :event/failed}
-          entity))
+      (cond->
+        (some? remote-mutation)
+        (sm/trigger-remote-mutation
+          :actor/form
+          remote-mutation
+          (merge
+            {::m/returning    item-cls
+             ::sm/ok-event    :event/success
+             ::sm/ok-data     {:form-cls form-cls :entity entity :target target}
+             ::sm/error-event :event/failed}
+            entity)))
       (sm/activate :state/submitting)
       (assoc-active-state))))
 
@@ -86,11 +97,12 @@
     {::sm/events
      {:event/success {::sm/handler
                       (global-handler
-                        (fn [{{:keys [form-cls entity append]} ::sm/event-data :as env}]
+                        (fn [{{:keys [form-cls entity target]} ::sm/event-data :as env}]
                           (log/info "SUBMIT SUCCESS")
                           ;; todo scroll to top of window
                           (-> env
-                            (sm/apply-action #(merge/merge-component % form-cls entity :append append))
+                            (sm/apply-action
+                              #(apply merge/merge-component (into [% form-cls entity] (fu/map->vec target))))
                             (sm/apply-action #(fu/reset-form* % (sm/actor->ident env :actor/form)))
                             (sm/assoc-aliased :server-msg "Success")
                             (sm/set-timeout :clear-msg-timer :event/reset {:entity entity} 2000)
@@ -98,7 +110,7 @@
       :event/failed  {::sm/handler
                       (global-handler
                         (fn [env]
-                          (log/info "SUBMIT FAILED: " env)
+                          (log/info "SUBMIT FAILED, env: " env)
                           (let [msg (fu/get-server-mutation-err env)]
                             (-> env
                               (sm/assoc-aliased :server-msg msg)
@@ -130,14 +142,20 @@
 
 ;; todo >defn
 (defn submit-entity!
-  [this {:keys [machine remote-mutation on-reset-mutation on-reset entity target]}]
-  (assert machine) (assert entity) (assert target)
+  [this {:keys [machine remote-mutation mutation on-reset-mutation on-reset entity target]}]
+  (assert machine) (assert entity)
+  (when (and remote-mutation mutation)
+    (throw (fu/error "You can only pass a mutation or a remote-mutation, but not both.")))
+
   (sm/trigger! this machine :event/submit
-    (merge {:entity            entity
-            :remote-mutation   remote-mutation
-            :on-reset          on-reset
-            :on-reset-mutation on-reset-mutation}
-      target)))
+    (cond->
+      {:entity            entity
+       :on-reset          on-reset
+       :on-reset-mutation on-reset-mutation
+       :target            target
+       }
+      remote-mutation (assoc :remote-mutation remote-mutation)
+      mutation (assoc :mutation mutation))))
 
 ;; TODO generate the machine id so the component code doesn't
 ;; need to know about it.

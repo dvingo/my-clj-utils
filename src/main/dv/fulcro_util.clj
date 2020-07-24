@@ -92,6 +92,9 @@
 (defn conj-set [entity fkw val]
   (update entity fkw #(conj (or (set %) #{}) val)))
 
+(defn map->vec [m]
+  (vec (mapcat identity m)))
+
 (defmacro defm
   "define a mutation for the simple case of threading state through forms.
   (defm pause-game [_] (assoc-math* :math/game-state :not-running))"
