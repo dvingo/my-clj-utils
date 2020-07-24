@@ -415,6 +415,13 @@
         "There was an error sending your request."
         error))))
 
+(defn get-server-mutation-err2
+  [result-or-env]
+  (let [result       (or (some-> result-or-env ::sm/event-data ::sm/mutation-result) result-or-env)
+        body         (:body result)
+        mutation-sym (-> body keys first)]
+    (-> body mutation-sym :server/message)))
+
 (defn map-table
   "show table of form fields for a component with value and validation state.
   validator component instance"
@@ -470,6 +477,18 @@
   ([kw v]
    [keyword? (s/or :id id? :m map?) => ::ident]
    [kw (if (map? v) (kw v) v)]))
+
+(>defn ->idents
+  "id-kw is id prop to use in nested collection found at property kw of map m."
+  [id-kw m kw]
+  [qualified-keyword? map? qualified-keyword? => map?]
+  (cond-> m
+    (some? (get m kw))
+    (update kw
+      (fn [vs]
+        (when (not (coll? vs))
+          (throw (js/Error. (str "Property is not a collection: " (pr-str kw) " val: " (pr-str vs)))))
+        (mapv #(->ident id-kw %) vs)))))
 
 (defn ident->id
   "ident [:prop id] => id"

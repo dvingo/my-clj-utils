@@ -26,8 +26,8 @@
              ::app                       (cond-> {}
                                            ~use-reagent?
                                            (assoc :render-middleware (fn [_# render#] (reagent.core/as-element (render#))))
-                                           #_~use-sablono?
-                                           #_(assoc :render-middleware (fn [_# render#] (sablono.core/html (render#)))))
+                                           ~use-sablono?
+                                           (assoc :render-middleware (fn [_# render#] (sablono.core/html (render#)))))
              :fulcro.inspect.core/app-id ~id}]
         (defonce ~app (upsert-app ~config))
         ;(println "App name is : " '~app)
