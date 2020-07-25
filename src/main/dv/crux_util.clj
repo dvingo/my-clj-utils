@@ -297,7 +297,9 @@
   (let [ent (domain-entity id)]
     (reduce
       (fn [ent [prop id-kw]]
-        (update ent prop #(join-ref id-kw %)))
+        (if (contains? ent prop)
+          (update ent prop #(join-ref id-kw %))
+          ent))
       ent
       field-tuples)))
 
