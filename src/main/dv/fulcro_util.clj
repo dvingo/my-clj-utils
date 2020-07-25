@@ -3,6 +3,7 @@
     [clojure.java.io :as io]
     [clojure.spec.alpha :as s]
     [clojure.edn :as edn]
+    [com.fulcrologic.fulcro.algorithms.merge :as merge]
     [com.fulcrologic.fulcro.components :as c :refer [defsc]]
     [com.fulcrologic.fulcro.mutations :refer [defmutation]]
     [com.fulcrologic.guardrails.core :refer [>defn => |]])
@@ -94,6 +95,13 @@
 
 (defn map->vec [m]
   (vec (mapcat identity m)))
+
+(defn remove-missing
+  "Remove properties from map which have value ::merge/not-found"
+  [m]
+  (into {}
+    (filter (fn [[_ v]] (not= ::merge/not-found v))
+      m)))
 
 (defmacro defm
   "define a mutation for the simple case of threading state through forms.
