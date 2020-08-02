@@ -411,6 +411,13 @@
 (defn entity->pristine! [this]
   (c/transact! this [(entity->pristine!*)]))
 
+(defmutation pristine->entity!* [_]
+  (action [{:keys [ref state]}]
+    (swap! state #(fs/pristine->entity* % ref))))
+
+(defn pristine->entity! [this]
+  (c/transact! this [(pristine->entity!*)]))
+
 (defn field-valid? [validator props field]
   (let [v (validator props field)]
     (contains? #{:unchecked :valid} v)))

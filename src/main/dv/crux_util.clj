@@ -73,7 +73,8 @@
   (assoc m :crux.db/id (get m field)))
 
 (defn insert-entity
-  "uses id-kw - keyword to get an id val for this entity to add crux.db/id to insert"
+  "Invokes put on the passed in map after associng crux.db/id onto the map.
+  uses id-kw - keyword to get an id val for this entity to add crux.db/id to insert"
   ([id-kw e]
    (insert-entity crux-node id-kw e))
   ([crux-node id-kw e]
@@ -293,8 +294,8 @@
   with the field name as key and val as the id itself, as required for pathom
   to process a join."
   [field-tuples id]
-  [(s/coll-of (s/tuple qualified-keyword? qualified-keyword?) :type vector?) id? => map?]
-  (let [ent (domain-entity id)]
+  [(s/coll-of (s/tuple qualified-keyword? qualified-keyword?) :type vector?) id? => (? map?)]
+  (if-let [ent (domain-entity id)]
     (reduce
       (fn [ent [prop id-kw]]
         (if (contains? ent prop)
