@@ -45,6 +45,7 @@
 
 (defn handle-submit
   [{::sm/keys [event-data] :as env}]
+  (log/info "in handle-submit")
   (let [{:keys [entity remote-mutation mutation target on-reset-mutation on-reset]} event-data
         form-cls      (sm/actor-class env :actor/form)
         form-instance (actor->inst :actor/form env)
@@ -122,7 +123,7 @@
       {::sm/handler
        (global-handler
          (fn [{{:keys [entity]} ::sm/event-data :as env}]
-           (log/info "HANDLING RESET")
+           ;(log/info "HANDLING RESET")
            (let [instance (actor->inst :actor/form env)]
              (if (comp/mounted? instance)
                (do (log/info "Is mounted")
@@ -131,10 +132,9 @@
                      (comp/transact! instance `[(~reset-mutation)]))
                    (when-let [on-reset (sm/retrieve env :on-reset)]
                      (log/info "Calling form reset fn")
-                     (js/setTimeout #(on-reset entity)))
-                   (sm/activate env :state/not-submitting))
-               (do (println "NOT mounted")
-                   env)))))}}}
+                     (js/setTimeout #(on-reset entity))))
+               (do (log/info "NOT mounted")))
+             (sm/activate env :state/not-submitting))))}}}
 
     :state/failed
     {::sm/events {:event/reset  (target :state/not-submitting)
@@ -147,13 +147,13 @@
   (when (and remote-mutation mutation)
     (throw (fu/error "You can only pass a mutation or a remote-mutation, but not both.")))
 
+  ;(log/info "submit-entity! state:" (sm/get-active-state this machine))
   (sm/trigger! this machine :event/submit
     (cond->
       {:entity            entity
        :on-reset          on-reset
        :on-reset-mutation on-reset-mutation
-       :target            target
-       }
+       :target            target}
       remote-mutation (assoc :remote-mutation remote-mutation)
       mutation (assoc :mutation mutation))))
 
