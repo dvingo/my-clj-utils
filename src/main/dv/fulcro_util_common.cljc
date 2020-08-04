@@ -92,7 +92,6 @@
 (defn remove-missing
   "Remove properties from map which have value ::merge/not-found"
   [m]
-  (log/info "rm mis: " m)
   (reduce
     (fn [acc [k v]]
       (cond
