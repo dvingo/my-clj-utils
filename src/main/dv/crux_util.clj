@@ -233,6 +233,9 @@
 
 (defn join-ref
   "
+  Convert an ident or a collection of idents into a map or a collection of maps as needed by pathom to traverse
+  a join relationship.
+
   input is one of:
 
   - ident [:task/id 'id'] => {:task/id 'id'}

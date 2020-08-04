@@ -76,7 +76,6 @@
   "Ret if invalid empty str, else int clamped at min - max"
   [min max num-str]
   [number? number? string? => ::str-or-num]
-  (log/info "clamp: called: " num-str)
   (cond
     (empty? num-str) num-str
     (or (nil? min) (nil? max)) (to-int num-str)
@@ -97,7 +96,9 @@
 (defn remove-id* [state table-key id]
   (update state table-key #(dissoc % id)))
 
-(defn remove-ids* [state table-key ids]
+(defn remove-ids*
+  "Given a top level fulcro db table key and a collection of ids, dissoc's those ids from the db."
+  [state table-key ids]
   (reduce #(remove-id* %1 table-key %2) state ids))
 
 (defn nan? [v] (js/Number.isNaN v))
