@@ -104,7 +104,8 @@
                           (-> env
                             (sm/apply-action
                               #(apply merge/merge-component (into [% form-cls entity] (fu/map->vec target))))
-                            (sm/apply-action #(fu/reset-form* % (sm/actor->ident env :actor/form)))
+                            (sm/apply-action #(fs/entity->pristine* % (sm/actor->ident env :actor/form)))
+                            (sm/apply-action #(fs/clear-complete* % (sm/actor->ident env :actor/form)))
                             (sm/assoc-aliased :server-msg "Success")
                             (sm/set-timeout :clear-msg-timer :event/reset {:entity entity} 2000)
                             (sm/activate :state/success))))}
