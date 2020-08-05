@@ -1,18 +1,14 @@
 (ns dv.fulcro-entity-state-machine
   (:refer-clojure :exclude [uuid])
   (:require
-    ["react" :as react]
     [clojure.spec.alpha :as s]
-    [clojure.string :as str]
     [com.fulcrologic.fulcro.algorithms.form-state :as fs]
     [com.fulcrologic.fulcro.algorithms.merge :as merge]
     [com.fulcrologic.fulcro.components :as comp :refer [defsc]]
-    [com.fulcrologic.fulcro.dom :as dom]
     [com.fulcrologic.fulcro.mutations :as m :refer [defmutation]]
     [com.fulcrologic.fulcro.ui-state-machines :as sm :refer [defstatemachine]]
     [com.fulcrologic.guardrails.core :refer [>defn => ?]]
     [dv.fulcro-util :as fu]
-    [goog.object :as gobj]
     [taoensso.timbre :as log]
     [com.fulcrologic.fulcro.components :as c]))
 
@@ -38,22 +34,13 @@
 (defn target [state]
   {::sm/handler (activate state)})
 
-(comment
-  ;; turn map in to k v pairs in vec
-  (vec (mapcat identity {:a 5 :b 5}))
-  )
-
 (defn handle-submit
   [{::sm/keys [event-data] :as env}]
   (log/info "in handle-submit")
-  (let [{:keys [entity remote-mutation mutation target on-reset-mutation on-reset]} event-data
+  (let [{:keys [entity remote-mutation mutation target on-reset-mutation on-reset creating?]} event-data
         form-cls      (sm/actor-class env :actor/form)
         form-instance (actor->inst :actor/form env)
         item-cls      (sm/actor-class env :actor/new-item)]
-    ;(log/info "HANDLE SUBMIT mutation: " mutation)
-    ;(log/info "Event data is: " event-data)
-    ;(log/info "ENV " env)
-
     (when mutation (c/transact! form-instance `[(~mutation)]))
     (-> env
       (cond->
@@ -68,7 +55,7 @@
           (merge
             {::m/returning    item-cls
              ::sm/ok-event    :event/success
-             ::sm/ok-data     {:form-cls form-cls :entity entity :target target}
+             ::sm/ok-data     {:form-cls form-cls :entity entity :target target :creating? creating?}
              ::sm/error-event :event/failed}
             entity)))
       (sm/activate :state/submitting)
@@ -98,13 +85,14 @@
     {::sm/events
      {:event/success {::sm/handler
                       (global-handler
-                        (fn [{{:keys [form-cls entity target]} ::sm/event-data :as env}]
+                        (fn [{{:keys [form-cls entity target creating?]} ::sm/event-data :as env}]
                           (log/info "SUBMIT SUCCESS")
                           ;; todo scroll to top of window
                           (-> env
                             (sm/apply-action
                               #(apply merge/merge-component (into [% form-cls entity] (fu/map->vec target))))
-                            (sm/apply-action #(fs/entity->pristine* % (sm/actor->ident env :actor/form)))
+                            (sm/apply-action
+                              #((if creating? fs/pristine->entity* fs/entity->pristine*) % (sm/actor->ident env :actor/form)))
                             (sm/apply-action #(fs/clear-complete* % (sm/actor->ident env :actor/form)))
                             (sm/assoc-aliased :server-msg "Success")
                             (sm/set-timeout :clear-msg-timer :event/reset {:entity entity} 2000)
@@ -124,7 +112,6 @@
       {::sm/handler
        (global-handler
          (fn [{{:keys [entity]} ::sm/event-data :as env}]
-           ;(log/info "HANDLING RESET")
            (let [instance (actor->inst :actor/form env)]
              (if (comp/mounted? instance)
                (do (log/info "Is mounted")
@@ -143,7 +130,7 @@
 
 ;; todo >defn
 (defn submit-entity!
-  [this {:keys [machine remote-mutation mutation on-reset-mutation on-reset entity target]}]
+  [this {:keys [machine remote-mutation mutation on-reset-mutation on-reset entity target creating?]}]
   (assert machine) (assert entity)
   (when (and remote-mutation mutation)
     (throw (fu/error "You can only pass a mutation or a remote-mutation, but not both.")))
@@ -154,12 +141,11 @@
       {:entity            entity
        :on-reset          on-reset
        :on-reset-mutation on-reset-mutation
-       :target            target}
+       :target            target
+       :creating?         creating?}
       remote-mutation (assoc :remote-mutation remote-mutation)
       mutation (assoc :mutation mutation))))
 
-;; TODO generate the machine id so the component code doesn't
-;; need to know about it.
 (defn begin! [this id new-entity]
   (sm/begin! this form-machine id
     {:actor/form     this
