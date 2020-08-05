@@ -170,6 +170,7 @@
 
      (defn ~(symbol (str name "!"))
        ([this#]
+        (assert (not (map? this#)))
         (c/transact!! this# [(~name)]))
        ([this# props#]
         (assert (map? props#))
@@ -186,13 +187,13 @@
        [params#]
        (~'action [{:keys [~'state ~'ref] :as env#}]
          (do
-           ;(log/info "IN MUTATION " ~name " params: " params#)
            (swap! ~'state
              (fn [s#]
                (~f s# (merge env# params#)))))))
 
      (defn ~(symbol (str name "!"))
        ([this#]
+        (assert (not (map? this#)))
         (c/transact! this# [(~name)]))
        ([this# props#]
         (assert (map? props#))
