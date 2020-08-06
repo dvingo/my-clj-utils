@@ -161,8 +161,6 @@
   [{:keys [opts env params] :as in}]
   (let [{::pc/keys [mutate resolve]} opts
         response (get-response in)]
-    (log/info "in response interceptor")
-
     (if response
       in
       (if resolve
