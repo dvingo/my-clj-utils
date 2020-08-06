@@ -37,7 +37,7 @@
 (defn handle-submit
   [{::sm/keys [event-data] :as env}]
   (log/info "in handle-submit")
-  (let [{:keys [entity remote-mutation mutation target on-reset-mutation on-reset creating?]} event-data
+  (let [{:keys [entity remote-mutation mutation target target-xform on-reset-mutation on-reset creating?]} event-data
         form-cls      (sm/actor-class env :actor/form)
         form-instance (actor->inst :actor/form env)
         item-cls      (sm/actor-class env :actor/new-item)]
@@ -55,7 +55,7 @@
           (merge
             {::m/returning    item-cls
              ::sm/ok-event    :event/success
-             ::sm/ok-data     {:form-cls form-cls :entity entity :target target :creating? creating?}
+             ::sm/ok-data     {:form-cls form-cls :entity entity :target target :target-xform target-xform :creating? creating?}
              ::sm/error-event :event/failed}
             entity)))
       (sm/activate :state/submitting)
@@ -85,12 +85,13 @@
     {::sm/events
      {:event/success {::sm/handler
                       (global-handler
-                        (fn [{{:keys [form-cls entity target creating?]} ::sm/event-data :as env}]
+                        (fn [{{:keys [form-cls entity target target-xform creating?]} ::sm/event-data :as env}]
                           (log/info "SUBMIT SUCCESS")
                           ;; todo scroll to top of window
                           (-> env
                             (sm/apply-action
-                              #(apply merge/merge-component (into [% form-cls entity] (fu/map->vec target))))
+                              #(apply merge/merge-component
+                                 (into [% form-cls (cond-> entity (some? target-xform) target-xform)] (fu/map->vec target))))
                             (sm/apply-action
                               #((if creating? fs/pristine->entity* fs/entity->pristine*) % (sm/actor->ident env :actor/form)))
                             (sm/apply-action #(fs/clear-complete* % (sm/actor->ident env :actor/form)))
@@ -130,7 +131,13 @@
 
 ;; todo >defn
 (defn submit-entity!
-  [this {:keys [machine remote-mutation mutation on-reset-mutation on-reset entity target creating?]}]
+  "target - fulcro target path
+  target-xform - a pure function that takes the entity and transforms it in some way before it is passed to target.
+  creating? - if true the form will be reset to the pristine state after successfully creating the entity
+              if false the form pristine state will be updated to be the new entity state.
+  "
+
+  [this {:keys [machine remote-mutation mutation on-reset-mutation on-reset entity target target-xform creating?]}]
   (assert machine) (assert entity)
   (when (and remote-mutation mutation)
     (throw (fu/error "You can only pass a mutation or a remote-mutation, but not both.")))
@@ -142,6 +149,7 @@
        :on-reset          on-reset
        :on-reset-mutation on-reset-mutation
        :target            target
+       :target-xform      target-xform
        :creating?         creating?}
       remote-mutation (assoc :remote-mutation remote-mutation)
       mutation (assoc :mutation mutation))))
