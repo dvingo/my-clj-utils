@@ -312,11 +312,10 @@
   (entity-with-prop [:email \"myaddress@addres.com\"])"
   [db eid]
    (when eid
-     (let [db ]
-       (if (vector? eid)
-         (let [[attr value] eid]
-           (recur db (entity-for-prop db [attr value])))
-         (crux/entity db eid)))))
+     (if (vector? eid)
+       (let [[attr value] eid]
+         (recur db (entity-for-prop db [attr value])))
+       (crux/entity db eid))))
 
 (defn start-entity [db e]
   (if (vector? e)
