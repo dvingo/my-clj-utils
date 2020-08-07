@@ -426,6 +426,17 @@
 (defn ensure-key [k]
   (if (id? k) k (UUID/fromString k)))
 
+
+(defn delete-all
+  "Synchronously deletes all the passed ids (can be either idents or ids)."
+  [crux-node ids]
+  (let [ids (mapv #(:crux.db/id (entity-with-prop %)) ids)]
+    (log/info "Deleting entities with keys: " (pr-str ids))
+    (crux/await-tx
+      crux-node
+      (crux/submit-tx crux-node
+        (mapv (fn [i] [:crux.tx/delete (ensure-key i)]) ids)))))
+
 (defn delete
   "Key is either [:some-prop \"value\"]
   or a value for crux.db/id"
