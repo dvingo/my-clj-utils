@@ -27,6 +27,17 @@
   (backup/backup {:backup-dir "crux-backup"} crux-node)
   (backup/restore {:db-dir "restore-crux-store/db" :event-log-dir "restore-crux-store/event-log" :backup-dir "crux-backup"}))
 
+(defn db? [x] (.isInstance ICruxDatasource x))
+
+
+
+(defn ->db [node-or-db]
+  (cond
+    (crux-node? node-or-db)
+    (crux/db node-or-db)
+    (db? node-or-db) node-or-db
+    :else (throw (Exception. (str "Unsopported value passed to ->db: " (pr-str node-or-db))))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Writing
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -95,7 +106,7 @@
 (defn q
   ([query]
    (q crux-node query))
-  ([crux-node query] (crux/q (crux/db crux-node) query)))
+  ([crux-node query] (crux/q (->db crux-node) query)))
 
 (defn field-kws->clauses
   "returns: [[e :field1 field1] [e :field2 field2]]"
@@ -124,16 +135,14 @@
        tuples))))
 
 (defn entity-id-for-prop
-  ([v] (entity-id-for-prop (crux/db crux-node) v))
+  ([v] (entity-id-for-prop crux-node v))
   ([db [attr value]]
-   (assert (.isInstance ICruxDatasource db) "You must pass a db to `entity-for-prop`")
-   (ffirst (crux/q db
+   (ffirst (crux/q (->db db)
              {:find  ['?e]
               :where [['?e attr value]]
               :args  [{'attr attr 'value value}]}))))
 
-(comment
-  (entity-id-for-prop (crux/db crux-node) [:val "1"]))
+(comment (entity-id-for-prop crux-node [:val "1"]))
 
 (defn entity-with-prop
   "Get an entity that has a property with value. copied from crux site
@@ -141,7 +150,7 @@
   ([eid] (entity-with-prop crux-node eid))
   ([crux-node eid]
    (when eid
-     (let [db (crux/db crux-node)]
+     (let [db (->db crux-node)]
        (if (vector? eid)
          (let [[attr value] eid]
            (recur crux-node (entity-id-for-prop db [attr value])))
@@ -169,18 +178,17 @@
 (defn entity
   ([entity-id] (entity crux-node (if (fu/ref? entity-id) (second entity-id) entity-id)))
   ([crux-node entity-id]
-   (crux/entity (crux/db crux-node) (if (fu/ref? entity-id) (second entity-id) entity-id))))
+   (crux/entity (->db crux-node) (if (fu/ref? entity-id) (second entity-id) entity-id))))
 
 (s/def ::tx-timestamps (? (s/map-of #{:db/updated-at :db/created-at} (? inst?))))
 
-
 (defn get-doc-created-at [crux-node id]
-  (with-open [history (crux/open-entity-history (crux/db crux-node) id
+  (with-open [history (crux/open-entity-history (->db crux-node) id
                         :asc {:with-docs? false})]
     (-> (iterator-seq history) first :crux.tx/tx-time)))
 
 (defn get-doc-updated-at [crux-node id]
-  (with-open [history (crux/open-entity-history (crux/db crux-node) id
+  (with-open [history (crux/open-entity-history (->db crux-node) id
                         :desc {:with-docs? false})]
     (-> (iterator-seq history) first :crux.tx/tx-time)))
 
@@ -208,10 +216,10 @@
   ([id] (history crux-node id :desc))
   ([id sort-order] (history crux-node id sort-order))
   ([crux-node id sort-order]
-   (crux/entity-history (crux/db crux-node) id sort-order
+   (crux/entity-history (->db crux-node) id sort-order
      {:with-docs? true}))
   ([crux-node id sort-order opts]
-   (crux/entity-history (crux/db crux-node) id sort-order opts)))
+   (crux/entity-history (->db crux-node) id sort-order opts)))
 
 (comment
   (crux-select crux-node [:user/id])

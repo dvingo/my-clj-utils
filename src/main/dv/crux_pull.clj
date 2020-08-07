@@ -1,9 +1,16 @@
 (ns dv.crux_pull
   (:require
+    [dv.crux-util :as cu]
     [crux.api :as crux]
     [datascript.pull-parser :as dpp]
     [taoensso.timbre :as log])
   (:import [datascript.pull_parser PullSpec]))
+
+(def --log false)
+
+(defmacro log
+  [& args]
+  (when --log `(log/info ~@args)))
 
 (defn- into!
   [transient-coll items]
@@ -72,9 +79,9 @@
 
 (defn- pull-recursion-frame
   [_ [frame & frames]]
-  (log/info "pull-recursion-frame")
+  (log "pull-recursion-frame")
   (if-let [eids (seq (:eids frame))]
-    (do (log/info "eids are: " eids)
+    (do (log "eids are: " eids)
         (let [frame (reset-frame frame (rest eids) (recursion-result frame))
               eid   (first eids)]
           (or (pull-seen-eid frame frames eid)
@@ -89,7 +96,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn- recurse-attr
   [db attr multi? eids eid parent frames]
-  (log/info "recurse-attr")
+  (log "recurse-attr")
   (let [{:keys [recursion pattern]} parent
         depth (-> recursion (get :depth) (get attr 0))]
     (if (-> pattern :attrs (get attr) :recursion (= depth))
@@ -115,7 +122,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defn- pull-attr-datoms
   [db attr-key attr eid forward? datoms opts [parent & frames]]
-  (log/info "pull-attr-datoms datoms: " datoms " opts: " opts)
+  (log "pull-attr-datoms datoms: " datoms " opts: " opts)
   (let [limit    (get opts :limit +default-limit+)
         attr-key (or (:as opts) attr-key)
         found    (not-empty
@@ -134,13 +141,13 @@
         (cond
           (contains? opts :subpattern)
           (->> (subpattern-frame (:subpattern opts)
-                 (mapv #(crux/entity db %) found)
+                 (mapv #(cu/entity db %) found)
                  multi? attr-key)
             (conj frames parent))
 
           (contains? opts :recursion)
           (recurse-attr db attr-key multi?
-            (mapv #(crux/entity db %) found)
+            (mapv #(cu/entity db %) found)
             eid parent frames)
 
           (and component? forward?)
@@ -167,7 +174,7 @@
 
 (defn- pull-attr
   [db spec eid frames]
-  (log/info "---------pull-attr " spec " eid: " eid)
+  (log "---------pull-attr " spec " eid: " eid)
   (let [[attr-key opts] spec]
     (if (= :db/id attr-key)
       frames
@@ -253,14 +260,14 @@
 
 (defn- pull-wildcard
   [db frame frames]
-  (log/info "pull wildcard")
+  (log "pull wildcard")
   (let [{:keys [eid pattern]} frame]
     (or (pull-seen-eid frame frames eid)
       (pull-wildcard-expand db frame frames eid pattern))))
 
 (defn- pull-pattern-frame
   [db [frame & frames]]
-  (log/info "pull-pattern-frame " frame)
+  (log "pull-pattern-frame " frame)
   (if-let [eids (seq (:eids frame))]
     (if (:wildcard? frame)
       (pull-wildcard db
@@ -281,7 +288,7 @@
 
 (defn- pull-pattern
   [db frames]
-  (log/info "pull-pattern----------------------------------pulling frame with state: " (:state (first frames)))
+  (log "pull-pattern----------------------------------pulling frame with state: " (:state (first frames)))
   (case (:state (first frames))
     :expand (recur db (pull-expand-frame db frames))
     :expand-rev (recur db (pull-expand-reverse-frame db frames))
@@ -292,7 +299,7 @@
                 result (mapv #(if (contains? % :db/id)
                                 (:db/id %) %) result)
                 result (cond-> result (not (:multi? f)) first)]
-            (log/info "\n\nDONE : result: " result)
+            ;(log/info "\n\nDONE : result: " result)
             (if (seq remaining)
               (->> (cond-> (first remaining)
                      result (update :kvps assoc! (:attr f) result))
@@ -300,37 +307,29 @@
                 (recur db))
               result))))
 
-(defn entity-for-prop
-  [db [attr value]]
-  (ffirst (crux/q db
-            {:find  ['?e]
-             :where [['?e attr value]]
-             :args  [{'attr attr 'value value}]})))
-
-(defn entity-with-prop
-  "Get an entity that has a property with value. copied from crux site
-  (entity-with-prop [:email \"myaddress@addres.com\"])"
-  [db eid]
-   (when eid
-     (if (vector? eid)
-       (let [[attr value] eid]
-         (recur db (entity-for-prop db [attr value])))
-       (crux/entity db eid))))
-
 (defn start-entity [db e]
   (if (vector? e)
-    (entity-with-prop db e)
-    (crux/entity db e)))
+    (cu/entity-with-prop db e)
+    (cu/entity db e)))
 
 (defn pull-spec
   [db pattern eids multi?]
-  (let [eids (into [] (map (partial start-entity db)) eids)]
+  (let [db   (cond-> db (cu/crux-node? db) crux/db)
+        eids (into [] (map (partial start-entity db)) eids)]
     (pull-pattern db (list (initial-frame pattern eids multi?)))))
 
-(defn pull [db selector eid]
+(defn pull
+  "db: Crux node or db
+  selector: pull syntax selector
+  eid: starting entity id"
+  [db selector eid]
   (pull-spec db (dpp/parse-pull selector) [eid] false))
 
-(defn pull-many [db selector eids]
+(defn pull-many
+  "db: Crux node or db
+  selector: pull syntax selector
+  eids: starting entity ids"
+  [db selector eids]
   (pull-spec db (dpp/parse-pull selector) eids true))
 
 ; (comment

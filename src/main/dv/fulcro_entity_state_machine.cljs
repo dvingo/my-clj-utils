@@ -1,16 +1,18 @@
 (ns dv.fulcro-entity-state-machine
-  (:refer-clojure :exclude [uuid])
   (:require
+    [clojure.walk :as walk]
     [clojure.spec.alpha :as s]
+    [clojure.string :as str]
     [com.fulcrologic.fulcro.algorithms.form-state :as fs]
     [com.fulcrologic.fulcro.algorithms.merge :as merge]
+    [com.fulcrologic.fulcro.components :as c]
     [com.fulcrologic.fulcro.components :as comp :refer [defsc]]
     [com.fulcrologic.fulcro.mutations :as m :refer [defmutation]]
     [com.fulcrologic.fulcro.ui-state-machines :as sm :refer [defstatemachine]]
     [com.fulcrologic.guardrails.core :refer [>defn => ?]]
     [dv.fulcro-util :as fu]
-    [taoensso.timbre :as log]
-    [com.fulcrologic.fulcro.components :as c]))
+    [edn-query-language.core :as eql]
+    [taoensso.timbre :as log]))
 
 (defn actor->inst [actor-kw env]
   (comp/ident->any (::sm/app env) (sm/actor->ident env actor-kw)))
@@ -34,13 +36,68 @@
 (defn target [state]
   {::sm/handler (activate state)})
 
+(defn kw-namespace [k] (and (keyword? k) (namespace k)))
+
+;; just so you don't consume the stack
+
+;; taken from fulcro.application ns
+
+(defn client-only-value? [k]
+  ;(println "checking key: " k)
+  (let [ns       (some-> k kw-namespace)
+        ident-ns (when (eql/ident? k) (some-> (first k) kw-namespace))
+        v        (or
+                   (and
+                     (string? ns)
+                     (or
+                       (= "ui" ns)
+                       (str/starts-with? ns "com.fulcrologic.fulcro.")))
+                   (and
+                     (string? ident-ns)
+                     (or
+                       (= "ui" ident-ns)
+                       (str/starts-with? ident-ns "com.fulcrologic.fulcro."))))
+        ]
+    ;(println "ret: " v)
+    v))
+
+;(defn elide-client-only-values
+;  "Takes a map and recursively removes and keys that should not be sent over the network."
+;  [m]
+;  (reduce
+;    (fn [acc [k v]]
+;      (if-not (client-only-value? k)
+;        (cond
+;          (map? v) (assoc acc k (elide-client-only-values v))
+;          (vector? v) (assoc acc k (mapv elide-client-only-values v))
+;          :else (assoc acc k v))
+;        acc))
+;    {} m))
+
+
+(defn elide-client-only-values*
+  "Takes a map, removes keys that should not be sent over the network."
+  [m]
+  (reduce
+    (fn [acc [k v]]
+      (if (client-only-value? k) acc (assoc acc k v)))
+    {} m))
+
+(defn elide-client-only-values
+  [m]
+  (walk/postwalk
+    (fn [x] (if (map? x) (elide-client-only-values* x) x))
+    m))
+
 (defn handle-submit
   [{::sm/keys [event-data] :as env}]
   (log/info "in handle-submit")
   (let [{:keys [entity remote-mutation mutation target target-xform on-reset-mutation on-reset creating?]} event-data
         form-cls      (sm/actor-class env :actor/form)
         form-instance (actor->inst :actor/form env)
-        item-cls      (sm/actor-class env :actor/new-item)]
+        item-cls      (sm/actor-class env :actor/new-item)
+        ;; for some reason the default global-eql-transform is not eliding nested keys
+        remote-entity (elide-client-only-values entity)]
     (when mutation (c/transact! form-instance `[(~mutation)]))
     (-> env
       (cond->
@@ -57,7 +114,7 @@
              ::sm/ok-event    :event/success
              ::sm/ok-data     {:form-cls form-cls :entity entity :target target :target-xform target-xform :creating? creating?}
              ::sm/error-event :event/failed}
-            entity)))
+            remote-entity)))
       (sm/activate :state/submitting)
       (assoc-active-state))))
 
@@ -160,3 +217,120 @@
      :actor/new-item new-entity}))
 
 
+;; testing elide-values
+(comment
+  (elide-client-only-values
+    {:habit/id            #uuid "e777425f-e28e-45b0-9ccf-f007b603d02f",
+     :habit/duration      nil,
+     :habit/starts-on     "UnknownTransitType: 2020-08-06",
+     :habit/criteria-num  2,
+     :habit/description   "Right then",
+     :habit/active?       true,
+     :habit/repeats-every "UnknownTransitType: P1D",
+     :habit/tasks
+                          [{:task/subtasks                [],
+                            :ui/has-duration?             false,
+                            :ui/has-scheduled-at?         false,
+                            :ui/show-delete-confirmation? false,
+                            :task/duration                "UnknownTransitType: PT1M",
+                            :com.fulcrologic.fulcro.algorithms.form-state/config
+                                                          {:com.fulcrologic.fulcro.algorithms.form-state/id
+                                                                                                                  [:task/id #uuid "1f2400de-af54-42e1-852d-48287d69f0d4"],
+                                                           :com.fulcrologic.fulcro.algorithms.form-state/fields
+                                                                                                                  #{:ui/has-duration? :ui/has-scheduled-at? :task/duration
+                                                                                                                    :task/description
+                                                                                                                    :task/scheduled-at},
+                                                           :com.fulcrologic.fulcro.algorithms.form-state/complete?
+                                                                                                                  #{:ui/has-duration? :ui/has-scheduled-at? :task/duration
+                                                                                                                    :task/description
+                                                                                                                    :task/scheduled-at},
+                                                           :com.fulcrologic.fulcro.algorithms.form-state/subforms {},
+                                                           :com.fulcrologic.fulcro.algorithms.form-state/pristine-state
+                                                                                                                  {:ui/has-duration?     false,
+                                                                                                                   :ui/has-scheduled-at? false,
+                                                                                                                   :task/duration        "UnknownTransitType: PT1M",
+                                                                                                                   :task/description     "chagnge",
+                                                                                                                   :task/scheduled-at    "UnknownTransitType: [object Object]"}},
+                            :ui/machine-state             :state/not-submitting,
+                            :task/id                      #uuid "1f2400de-af54-42e1-852d-48287d69f0d4",
+                            :ui/subtask-form
+                                                          {:task/id              #uuid "6bde87a7-f6ef-4920-8828-404345282259",
+                                                           :task/description     "",
+                                                           :task/duration        "UnknownTransitType: PT1M",
+                                                           :task/scheduled-at    "UnknownTransitType: [object Object]",
+                                                           :ui/show-form-debug?  false,
+                                                           :ui/has-duration?     false,
+                                                           :ui/has-scheduled-at? false,
+                                                           :com.fulcrologic.fulcro.algorithms.form-state/config
+                                                                                 {:com.fulcrologic.fulcro.algorithms.form-state/id
+                                                                                                                                         [:task/id #uuid "6bde87a7-f6ef-4920-8828-404345282259"],
+                                                                                  :com.fulcrologic.fulcro.algorithms.form-state/fields
+                                                                                                                                         #{:ui/has-duration? :ui/has-scheduled-at? :task/duration
+                                                                                                                                           :task/description
+                                                                                                                                           :task/scheduled-at},
+                                                                                  :com.fulcrologic.fulcro.algorithms.form-state/subforms {},
+                                                                                  :com.fulcrologic.fulcro.algorithms.form-state/pristine-state
+                                                                                                                                         {:ui/has-duration?     false,
+                                                                                                                                          :ui/has-scheduled-at? false,
+                                                                                                                                          :task/duration        "UnknownTransitType: PT1M",
+                                                                                                                                          :task/description     "",
+                                                                                                                                          :task/scheduled-at    "UnknownTransitType: [object Object]"}}},
+                            :ui/show-form-debug?          false,
+                            :task/description             "chagnge",
+                            :task/scheduled-at            "UnknownTransitType: [object Object]",
+                            :db/updated-at                #inst "2020-08-06T20:31:24.755-00:00",
+                            :db/created-at                #inst "2020-08-06T19:47:07.686-00:00"}
+                           {:task/subtasks                [],
+                            :ui/has-duration?             false,
+                            :ui/has-scheduled-at?         false,
+                            :ui/show-delete-confirmation? false,
+                            :task/duration                "UnknownTransitType: PT1M",
+                            :com.fulcrologic.fulcro.algorithms.form-state/config
+                                                          {:com.fulcrologic.fulcro.algorithms.form-state/id
+                                                                                                                  [:task/id #uuid "8cf7f2eb-b095-4e36-a9a4-5f424cccc48c"],
+                                                           :com.fulcrologic.fulcro.algorithms.form-state/fields
+                                                                                                                  #{:ui/has-duration? :ui/has-scheduled-at? :task/duration
+                                                                                                                    :task/description
+                                                                                                                    :task/scheduled-at},
+                                                           :com.fulcrologic.fulcro.algorithms.form-state/complete?
+                                                                                                                  #{:ui/has-duration? :ui/has-scheduled-at? :task/duration
+                                                                                                                    :task/description
+                                                                                                                    :task/scheduled-at},
+                                                           :com.fulcrologic.fulcro.algorithms.form-state/subforms {},
+                                                           :com.fulcrologic.fulcro.algorithms.form-state/pristine-state
+                                                                                                                  {:ui/has-duration?     false,
+                                                                                                                   :ui/has-scheduled-at? false,
+                                                                                                                   :task/duration        "UnknownTransitType: PT1M",
+                                                                                                                   :task/description     "Drink 1 liter of water",
+                                                                                                                   :task/scheduled-at    "UnknownTransitType: [object Object]"}},
+                            :ui/machine-state             :state/not-submitting,
+                            :task/id                      #uuid "8cf7f2eb-b095-4e36-a9a4-5f424cccc48c",
+                            :ui/subtask-form
+                                                          {:task/id              #uuid "a8bdce00-bce1-44bf-b749-602db3b03a3a",
+                                                           :task/description     "",
+                                                           :task/duration        "UnknownTransitType: PT1M",
+                                                           :task/scheduled-at    "UnknownTransitType: [object Object]",
+                                                           :ui/show-form-debug?  false,
+                                                           :ui/has-duration?     false,
+                                                           :ui/has-scheduled-at? false,
+                                                           :com.fulcrologic.fulcro.algorithms.form-state/config
+                                                                                 {:com.fulcrologic.fulcro.algorithms.form-state/id
+                                                                                                                                         [:task/id #uuid "a8bdce00-bce1-44bf-b749-602db3b03a3a"],
+                                                                                  :com.fulcrologic.fulcro.algorithms.form-state/fields
+                                                                                                                                         #{:ui/has-duration? :ui/has-scheduled-at? :task/duration
+                                                                                                                                           :task/description
+                                                                                                                                           :task/scheduled-at},
+                                                                                  :com.fulcrologic.fulcro.algorithms.form-state/subforms {},
+                                                                                  :com.fulcrologic.fulcro.algorithms.form-state/pristine-state
+                                                                                                                                         {:ui/has-duration?     false,
+                                                                                                                                          :ui/has-scheduled-at? false,
+                                                                                                                                          :task/duration        "UnknownTransitType: PT1M",
+                                                                                                                                          :task/description     "",
+                                                                                                                                          :task/scheduled-at    "UnknownTransitType: [object Object]"}}},
+                            :ui/show-form-debug?          false,
+                            :task/description             "Drink 1 liter of water",
+                            :task/scheduled-at            "UnknownTransitType: [object Object]",
+                            :db/updated-at                #inst "2020-08-06T19:47:07.696-00:00",
+                            :db/created-at                #inst "2020-08-06T19:47:07.696-00:00"}],
+     :habit/criteria      :min-of})
+  )
