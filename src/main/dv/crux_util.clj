@@ -29,8 +29,6 @@
 
 (defn db? [x] (.isInstance ICruxDatasource x))
 
-
-
 (defn ->db [node-or-db]
   (cond
     (crux-node? node-or-db)
@@ -116,6 +114,8 @@
 
 (defn crux-select
   "
+  fields - collection of properties to find all documents that have them.
+
   returns a vector of maps of the fields to their corresponding values.
   fields is a vector of keywords
   (crux-select [:task/id :task/name :task/description])
@@ -125,6 +125,7 @@
   "
   ([fields] (crux-select crux-node fields))
   ([crux-node fields]
+   (assert (every? qualified-keyword? fields))
    (let [clauses     (field-kws->clauses fields)
          field-names (mapv (comp symbol name) fields)
          query       {:find field-names :where clauses}
@@ -145,7 +146,8 @@
 (comment (entity-id-for-prop crux-node [:val "1"]))
 
 (defn entity-with-prop
-  "Get an entity that has a property with value. copied from crux site
+  "eid - [:kw val]
+  Get an entity that has a property with value. copied from crux site
   (entity-with-prop [:email \"myaddress@addres.com\"])"
   ([eid] (entity-with-prop crux-node eid))
   ([crux-node eid]
@@ -228,6 +230,7 @@
   )
 
 (defn domain-entity
+  "Invokes crux/entity and adds db/created-at and db/updated-at to the return value."
   ([id]
    (domain-entity crux-node (if (fu/ref? id) (second id) id)))
   ([crux-node id]
@@ -240,9 +243,11 @@
 ;; Pathom helpers
 
 (defn join-ref
-  "
-  Convert an ident or a collection of idents into a map or a collection of maps as needed by pathom to traverse
+  "Convert an ident or a collection of idents into a map or a collection of maps as needed by pathom to traverse
   a join relationship.
+
+  v - ident or coll of idents
+  kw - keyword of the prop that has the id
 
   input is one of:
 
@@ -305,7 +310,7 @@
   with the field name as key and val as the id itself, as required for pathom
   to process a join."
   [field-tuples id]
-  [(s/coll-of (s/tuple qualified-keyword? qualified-keyword?) :type vector?) id? => (? map?)]
+  [(s/coll-of (s/tuple qualified-keyword? qualified-keyword?) :type vector?) (s/or :id id? :ident fu/ref?) => (? map?)]
   (if-let [ent (domain-entity id)]
     (reduce
       (fn [ent [prop id-kw]]

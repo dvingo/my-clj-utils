@@ -7,18 +7,24 @@
 
 (defmacro to-many-ref-type
   [spec]
-  `(s/coll-of (s/or :id fu/id? :ident ::fu/ident ~(keyword (name spec)) ~spec) :type vector?))
-
-(defmacro to-many-ident-ref-type
-  [spec]
-  `(s/coll-of ::fu/ident :type vector?))
+  `(s/coll-of
+     (s/or
+       :id fu/id?
+       :ident ::fu/ident
+       :pathom-join-map (s/map-of qualified-keyword? uuid?)
+       ~(keyword (name spec)) ~spec)
+     :type vector?))
 
 (defmacro to-one-ref-type
   [spec]
   (let [nm   (name spec)
         idkw (keyword nm "id")
         nmkw (keyword nm)]
-    `(s/or :id fu/ref? ~(keyword (str nm "-ref")) (s/map-of ~idkw fu/id?) ~nmkw ~spec)))
+    `(s/or
+       :id fu/ref?
+       ~(keyword (str nm "-ref")) (s/map-of ~idkw fu/id?)
+       :pathom-join-map (s/map-of qualified-keyword? uuid?)
+       ~nmkw ~spec)))
 
 (comment
   (macroexpand-1 '(to-one-ref-type ::habit)))
