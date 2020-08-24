@@ -8,6 +8,8 @@ Contains some code related to:
 - crux
 - fulcro
   - devcards support
+    - To use this you have to include https://clojars.org/borkdude/dynaload in your dependencies. Including it in 
+    this library failed to work - you must include it in your own project.
 - pedestal http server setup with reitit, for use with fulcro
 - pathom parser setup
 

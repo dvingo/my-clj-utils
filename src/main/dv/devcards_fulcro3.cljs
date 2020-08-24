@@ -1,6 +1,7 @@
 (ns dv.devcards-fulcro3
   (:require-macros [dv.devcards-fulcro3 :refer [make-card]])
   (:require
+    [borkdude.dynaload-cljs :refer-macros [dynaload]]
     [cljs.spec.alpha :as s]
     [com.fulcrologic.fulcro.algorithms.merge :as f.merge]
     [com.fulcrologic.fulcro.algorithms.normalize :refer [tree->db]]
@@ -14,6 +15,9 @@
     [nubank.workspaces.model :as wsm]
     [nubank.workspaces.ui :as ui]
     [nubank.workspaces.ui.core :as uc]))
+
+(def html (dynaload 'sablono.core/html))
+(def r-as-element (dynaload 'reagent.core/as-element))
 
 ;; This was copied from the workspaces fulcro 3 code
 ;; https://github.com/awkay/workspaces/blob/e1d3c21042229309c5df954f8156b5918b0c9a40/src/nubank/workspaces/card_types/fulcro3.cljs
@@ -48,7 +52,7 @@
                               factory  (fc/factory Root)
                               computed (fc/shared this ::computed)]
                           (if (seq root)
-                             (factory (cond-> root computed (fc/computed computed))))))})))
+                            (factory (cond-> root computed (fc/computed computed))))))})))
 
 (defn fulcro-initial-state [{::keys [initial-state wrap-root? root root-state]
                              :or    {wrap-root? true initial-state {}}}]
