@@ -4,10 +4,6 @@
     [taoensso.timbre :as log])
   (:import [java.util UUID]))
 
-;; todo
-;; use https://github.com/borkdude/dynaload
-;; to conditionally load sablono and reagent.
-
 (defmacro make-card
   "Create a devcard for a fulcro component.
   Takes symbol of fulcro component and options."
