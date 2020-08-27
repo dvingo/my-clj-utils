@@ -179,7 +179,7 @@
 (defmacro deflocalmutation2
   "uses transact!
   name and body, fn that takes state map and props + env in one map
-  defs a fn that performs a transact!! this for you"
+  defs a fn that performs a transact! this for you"
 
   [name f]
   `(let []
