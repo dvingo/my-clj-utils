@@ -12,8 +12,8 @@
   ([component {::keys [wrap-root? root-state use-sablono? use-reagent?]
                :or    {wrap-root? true}
                :as    opts}]
-   (log/info "use-reagent? " use-reagent?)
-   (log/info "use-sablono? " use-sablono?)
+   ;(log/info "use-reagent? " use-reagent?)
+   ;(log/info "use-sablono? " use-sablono?)
    (let [id     (UUID/randomUUID)
          app    (symbol (str (name component) "devcards-fulcro3-app"))
          config (gensym "config")]
