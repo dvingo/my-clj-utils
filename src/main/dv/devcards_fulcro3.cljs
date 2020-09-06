@@ -10,6 +10,7 @@
     [com.fulcrologic.fulcro.dom :as dom]
     [com.fulcrologic.guardrails.core :refer [>defn | ? =>]]
     [com.fulcrologic.fulcro.inspect.inspect-client :as fi.client]
+    [devcards.core]
     [nubank.workspaces.card-types.util :as ct.util]
     [nubank.workspaces.data :as data]
     [nubank.workspaces.model :as wsm]
