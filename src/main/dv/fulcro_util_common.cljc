@@ -600,3 +600,33 @@
                          [:habit/id #uuid "6a35e95f-b926-4bdf-9c34-761d8b35c903"]})
 
   )
+
+(defn move-item-up
+  "Move an element to the prior index in a vector"
+  [avec index]
+  (assert (and (> index 0) (<= index (dec (count avec)))))
+  (let [item   (get avec index)
+        item-1 (get avec (dec index))]
+    (-> avec
+      (assoc (dec index) item)
+      (assoc index item-1))))
+(comment
+  (move-item-up [1 2 3 4] -1)
+  (move-item-up [1 2 3 4] 4)
+  (move-item-up [1 2 3 4] 1))
+
+(defn move-item-down
+  "Move an element to the next index in a vector (swap with subsequent item)"
+  [avec index]
+  (assert (and (>= index 0) (< index (dec (count avec)))))
+  (let [item   (get avec index)
+        item+1 (get avec (inc index))]
+    (-> avec
+      (assoc (inc index) item)
+      (assoc index item+1))))
+
+(comment
+  (move-item-down [1 2 3 4] 0)
+  (move-item-down [1 2 3 4] 3)
+  (move-item-down [1 2 3 4] 2)
+  (move-item-down [1 2 3 4] 1))

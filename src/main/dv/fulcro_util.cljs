@@ -174,10 +174,10 @@
     (fs/clear-complete* ident)))
 
 (defn reset-form! [this]
-  (c/transact! this [(fs/reset-form!)]))
+  (c/transact! this [(fs/reset-form!) (fs/clear-complete!)]))
 
 (defn reset-form!! [this]
-  (c/transact!! this [(fs/reset-form!)]))
+  (c/transact!! this [(fs/reset-form!) (fs/clear-complete!)]))
 
 (defn mark-complete!
   [this field]
