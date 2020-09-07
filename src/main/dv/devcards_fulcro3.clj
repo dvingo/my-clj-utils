@@ -12,8 +12,6 @@
   ([component {::keys [wrap-root? root-state use-sablono? use-reagent?]
                :or    {wrap-root? true}
                :as    opts}]
-   ;(log/info "use-reagent? " use-reagent?)
-   ;(log/info "use-sablono? " use-sablono?)
    (let [id     (UUID/randomUUID)
          app    (symbol (str (name component) "devcards-fulcro3-app"))
          config (gensym "config")]
@@ -28,7 +26,6 @@
                                            (assoc :render-middleware (fn [_# render#] (@html (render#)))))
              :fulcro.inspect.core/app-id ~id}]
         (defonce ~app (upsert-app ~config))
-        ;(println "App name is : " '~app)
         (defcard ~(symbol (str (name component) "-card"))
           (dc/dom-node
             (fn [_# dom-node#]
