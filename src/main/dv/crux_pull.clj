@@ -1,4 +1,4 @@
-(ns dv.crux_pull
+(ns dv.crux-pull
   (:require
     [dv.crux-util :as cu]
     [crux.api :as crux]
