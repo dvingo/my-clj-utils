@@ -423,12 +423,16 @@
   (let [v (validator props field)]
     (contains? #{:unchecked :valid} v)))
 
-(defn validator-state [validator props]
-  (let [valid-state (validator props)
-        dirty?      (fs/dirty? props)
-        disabled?   (or (= :invalid valid-state)
-                      (and (= :unchecked valid-state)
-                        (not dirty?)))]
+(defn validator-state [this validator]
+  (assert (c/component-instance? this))
+  (let [cls               (c/get-class this)
+        props             (c/props this)
+        fields            (fs/get-form-fields cls)
+        valid-state       (validator props)
+        dirty?            (fs/dirty? props)
+        all-fields-valid? (every? #(= :valid (validator props %)) fields)
+        disabled?         (or (= :invalid valid-state)
+                            (and (= :unchecked valid-state) (not all-fields-valid?)))]
     {:checked?  (fs/checked? props)
      :dirty?    dirty?
      :disabled? disabled?}))
