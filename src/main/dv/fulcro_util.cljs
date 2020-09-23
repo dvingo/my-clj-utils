@@ -34,15 +34,9 @@
 ;; websocket network remote
 ;; etc
 
-(defn conj-vec [entity fkw val]
-  (update entity fkw #(conj (or % []) val)))
-
-(defn conj-set [entity fkw val]
-  (update entity fkw #(conj (or (set %) #{}) val)))
+(defn parse-int [int-str] (js/parseInt int-str 10))
 
 (s/def ::str-or-num (s/or :s string? :n number?))
-
-(defn parse-int [int-str] (js/parseInt int-str 10))
 
 (>defn to-int
   [str-num]
@@ -473,62 +467,6 @@
              m)))))))
 
 (defstyled hover-hand :div {":hover" {:cursor "pointer"}})
-
-(defn id? [id]
-  (or (keyword? id) (uuid? id)))
-
-;; [prop val]
-(s/def ::ident (s/tuple qualified-keyword? id?))
-(s/def ::coll-of-idents (s/coll-of ::ident :kind vector?))
-(defn coll-of-idents? [v] (s/valid? ::coll-of-idents v))
-
-(defn ref?
-  ([v] (s/valid? ::ident v))
-  ([kw-id v]
-   (and (s/valid? ::ident v)
-     (= (first v) kw-id))))
-
-(defn ident? [v] (s/valid? ::ident v))
-
-(s/def ::prop-path (s/tuple qualified-keyword? id? qualified-keyword?))
-
-(defn prop-path? [v]
-  (s/valid? ::prop-path v))
-
-(defn ref->id
-  "ident [:prop id] => id"
-  [v] (cond-> v (s/valid? ::ident v) second))
-
-(>defn ->ident
-  "Given a kw that is the id prop, and a map or id, return ident."
-  ([kw]
-   [keyword? => fn?]
-   (fn
-     ([m] (->ident kw m))
-     ([id v] [kw id v])))
-  ([kw v]
-   [keyword? (s/or :id id? :m map?) => ::ident]
-   [kw (if (map? v) (kw v) v)]))
-
-(>defn ->idents
-  "id-kw is id prop to use in nested collection found at property kw of map m."
-  [id-kw m kw]
-  [qualified-keyword? map? qualified-keyword? => map?]
-  (cond-> m
-    (some? (get m kw))
-    (update kw
-      (fn [vs]
-        (when (not (coll? vs))
-          (throw (js/Error. (str "Property is not a collection: " (pr-str kw) " val: " (pr-str vs)))))
-        (mapv #(->ident id-kw %) vs)))))
-
-(defn ident->id
-  "ident [:prop id] => id"
-  [v] (cond-> v (s/valid? ::ident v) second))
-
-(defn server-error [msg]
-  {:server/message msg
-   :server/error?  true})
 
 (>defn uuid
   "Without args gives random UUID.

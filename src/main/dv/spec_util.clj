@@ -2,7 +2,7 @@
   (:refer-clojure :exclude [keys])
   (:require
     [clojure.spec.alpha :as s]
-    [dv.fulcro-util :as fu]
+    [dv.fulcro-util-common :as fu]
     [taoensso.timbre :as log]))
 
 (defmacro to-many-ref-type

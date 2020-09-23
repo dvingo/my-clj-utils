@@ -5,7 +5,7 @@
     [cljs.spec.alpha :as s]
     [com.fulcrologic.fulcro.algorithms.merge :as f.merge]
     [com.fulcrologic.fulcro.algorithms.normalize :refer [tree->db]]
-    [com.fulcrologic.fulcro.application :as fapp]
+    [com.fulcrologic.fulcro.application :as fa]
     [com.fulcrologic.fulcro.components :as fc]
     [com.fulcrologic.fulcro.dom :as dom]
     [com.fulcrologic.guardrails.core :refer [>defn | ? =>]]
@@ -83,7 +83,7 @@
                         app-id
                         (assoc-in [:initial-db :fulcro.inspect.core/app-id] app-id))
           ;; TASK: explicit initial state handling
-          instance    (fapp/fulcro-app app-options)]
+          instance    (fa/fulcro-app app-options)]
 
       ;(println "APP options : " app-options)
       (if persistence-key (swap! persistent-apps* assoc persistence-key instance))
@@ -96,9 +96,9 @@
 
 (>defn mount-at
   [app {::keys [root wrap-root? persistence-key] :or {wrap-root? true}} node]
-  [::fapp/app map? some? => any?]
+  [::fa/app map? some? => any?]
   (let [instance (if wrap-root? (make-root root) root)]
-    (fapp/mount! app instance node {:initialize-state? false})
+    (fa/mount! app instance node {:initialize-state? false})
     (when persistence-key (swap! persistent-apps* assoc persistence-key app))
     app))
 
@@ -119,7 +119,7 @@
          (js/ReactDOM.unmountComponentAtNode node))
 
        ::wsm/refresh
-       (fn [_] (fapp/force-root-render! app))
+       (fn [_] (fa/force-root-render! app))
 
        ::wsm/render
        (fn [node]

@@ -6,7 +6,7 @@
     [crux.api :as crux]
     [crux.backup :as backup]
     [dv.crux-node :refer [crux-node]]
-    [dv.fulcro-util :as fu]
+    [dv.fulcro-util-common :as fu]
     [taoensso.timbre :as log])
   (:import [java.util Date]
            [java.util UUID]

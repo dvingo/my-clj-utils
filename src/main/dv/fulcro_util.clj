@@ -30,47 +30,6 @@
 (s/def ::body (s/cat :thread-forms ::thread-forms))
 (s/def ::params (s/cat :name simple-symbol? :props ::props :body ::body))
 
-(defn id? [id]
-  (or (keyword? id) (uuid? id)))
-
-;; [prop val]
-(s/def ::ident (s/tuple qualified-keyword? id?))
-(s/def ::coll-of-idents (s/coll-of ::ident :kind vector?))
-(defn coll-of-idents? [v] (s/valid? ::coll-of-idents v))
-
-(defn ref?
-  "Return true if v is an ident
-  if you pass kw-id the first element of v must by kw-id."
-  ([v] (s/valid? ::ident v))
-  ([kw-id v]
-   (and (s/valid? ::ident v)
-     (= (first v) kw-id))))
-
-(>defn ->ident
-  "Given a kw that is the id prop, and a map or id, return ident."
-  ([kw]
-   [keyword? => fn?]
-   (fn
-     ([m] (->ident kw m))
-     ([id v] [kw id v])))
-  ([kw v]
-   [keyword? (s/or :id id? :m map? :ident ::ident) => ::ident]
-   (if (ref? kw v)
-     v
-     [kw (if (map? v) (kw v) v)])))
-
-(>defn ->idents
-  "id-kw is id prop to use in nested collection found at property kw of map m."
-  [id-kw m kw]
-  [qualified-keyword? map? qualified-keyword? => map?]
-  (cond-> m
-    (some? (get m kw))
-    (update kw
-      (fn [vs]
-        (when (not (coll? vs))
-          (throw (Exception. (str "Property is not a collection: " (pr-str kw) " val: " (pr-str vs)))))
-        (mapv #(->ident id-kw %) vs)))))
-
 (defn ref->id
   "ident [:prop id] => id"
   [v] (cond-> v (s/valid? ::ident v) second))
