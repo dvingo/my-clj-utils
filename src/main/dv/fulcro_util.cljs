@@ -522,11 +522,13 @@
                      (string? ns)
                      (or
                        (= "ui" ns)
+                       (str/starts-with? ns "fulcro.")
                        (str/starts-with? ns "com.fulcrologic.fulcro.")))
                    (and
                      (string? ident-ns)
                      (or
                        (= "ui" ident-ns)
+                       (str/starts-with? ns "fulcro.")
                        (str/starts-with? ident-ns "com.fulcrologic.fulcro."))))
         ]
     ;(println "ret: " v)
@@ -565,6 +567,7 @@
 (comment
   (elide-client-only-values
     {:habit/id            #uuid "e777425f-e28e-45b0-9ccf-f007b603d02f",
+     :fulcro.client.primitives/computed {:some-key "value"}
      :habit/duration      nil,
      :habit/starts-on     "UnknownTransitType: 2020-08-06",
      :habit/criteria-num  2,

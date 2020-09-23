@@ -76,7 +76,7 @@
    [keyword? => fn?]
    (fn
      ([m] (->ident kw m))
-     ([id v] [kw id v])))
+     ([id v] (conj (->ident kw id) v))))
   ([kw v]
    [keyword? (s/or :id id? :m map? :ident ::ident) => ::ident]
    (if (ref? kw v)
