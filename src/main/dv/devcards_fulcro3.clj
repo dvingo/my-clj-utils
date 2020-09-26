@@ -35,6 +35,22 @@
                  ::persistence-key ::test1}
                 dom-node#))))))))
 
+(defmacro make-reagent-card
+  ([component]
+   `(make-reagent-card ~component {}))
+  ([component opts]
+   `(make-card ~component ~(merge opts {::use-reagent? true}))))
+
+(defmacro make-no-root-card
+  [component opts]
+  `(make-card ~component ~(merge opts {::wrap-root? false})))
+
+(defmacro make-reagent-no-root-card
+  ([component]
+   `(make-reagent-no-root-card ~component {}))
+  ([component opts]
+   `(make-card ~component ~(merge opts {::wrap-root? false ::use-reagent? true}))))
+
 (comment
   (macroexpand-1
     (macroexpand-1 '(make-card FulcroDemo))))
