@@ -53,7 +53,9 @@
 (>def ::coll-of-idents (s/coll-of ::ident :kind vector?))
 (defn coll-of-idents? [v] (s/valid? ::coll-of-idents v))
 
-(defn ident? [v] (s/valid? ::ident v))
+(defn ident?
+  "Returns true if arg is a two-tuple of qualified keyword and an id."
+  [v] (s/valid? ::ident v))
 
 (s/def ::prop-path (s/tuple qualified-keyword? id? qualified-keyword?))
 

@@ -2,6 +2,7 @@
   (:require
     [dv.crux-util :as cu]
     [crux.api :as crux]
+    ;[dv.crux-node :refer [crux-node]]
     [datascript.pull-parser :as dpp]
     [taoensso.timbre :as log])
   (:import [datascript.pull_parser PullSpec]))
@@ -168,10 +169,6 @@
              (update :kvps assoc! attr-key (:default opts)))
         (conj frames)))))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; todo reverse attrs
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
 (defn- pull-attr
   [db spec eid frames]
   (log "---------pull-attr " spec " eid: " eid)
@@ -184,12 +181,15 @@
             results  (if forward?
                        (attr-key eid)
                        ;; todo reverse
-                       (attr-key eid)
-                       ;(db/-datoms db :eavt [eid attr])
-                       ;(db/-datoms db :avet [attr eid])
-                       )]
-        (pull-attr-datoms db attr-key attr eid forward?
-          results opts frames)))))
+                       (do
+                         ;(log "REVERSE: attr-key: " attr-key)
+                         ;(log "attr: " attr)
+                         (let [p (cu/get-parent attr (:crux.db/id eid))]
+                           #_(log "parent: " p)
+                           p
+                           )
+                         ))]
+        (pull-attr-datoms db attr-key attr eid forward? results opts frames)))))
 
 (def ^:private filter-reverse-attrs
   (filter (fn [[k v]] (not= k (:attr v)))))
@@ -332,6 +332,8 @@
   [db selector eids]
   (pull-spec db (dpp/parse-pull selector) eids true))
 
+
+
 ; (comment
 ;   (pull crux-node [:task/description] :dan-test1)
 ;
@@ -369,3 +371,23 @@
 ;   (pull crux-node [:user/email :user/tasks] [:user/email "abc@abc.com"])
 ;   (pull crux-node [:user/id [:user/id2 :default :hi]] #uuid"8d5a0a66-e98f-43ff-8803-e411073d0880")
 ;   )
+
+;(comment
+;  (cu/put-all
+;    [{:crux.db/id       :1
+;      :task/id          :1
+;      :task/description "one"
+;      :task/subtasks    [[:task/id :2] [:task/id :3]]}
+;     {:crux.db/id       :2
+;      :task/id          :2
+;      :task/description "two"
+;      :task/subtasks    [[:task/id :5]]}
+;     {:crux.db/id    :3 :task/id :3 :task/description "three"
+;      :task/subtasks [[:task/id :4]]}
+;     {:crux.db/id :4
+;      :task/id    :4 :task/description "four"}
+;     {:crux.db/id :5 :task/id :5 :task/description "five"}])
+;
+;  (pull crux-node [:task/id :task/description {:task/_subtasks '...}] :5)
+;  (pull crux-node [:task/id :task/description {:task/_subtasks 1}] :5)
+;  )

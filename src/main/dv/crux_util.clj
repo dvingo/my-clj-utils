@@ -102,6 +102,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn q
+  "Execute a query against the provided crux database or after calling 'db' on the crux-node."
   ([query]
    (q crux-node query))
   ([crux-node query] (crux/q (->db crux-node) query)))
@@ -239,6 +240,57 @@
 
 (comment
   (domain-entity #uuid "e0fdda94-5cfe-4062-bf2a-1cdb2521e4f9"))
+
+
+;; Ancestor and parent query helpers
+
+(defn get-parent
+  "Returns nilable ID of the parent document who has the child with the given ident value under the 'child-attr'
+  attribute.
+  (get-parent :goal/subgoals [:goal/id #uuid '...']
+  ident-val is either an ident or an id"
+  [child-attr ident-val]
+  (if (fu/ident? ident-val)
+    (ffirst
+      (q crux-node
+        {:find  '[parent-id]
+         :where [['parent-id child-attr 'ident-val]]
+         :args  [{'ident-val ident-val}]}))
+    (ffirst
+      (q crux-node
+        {:find  '[parent-id]
+         :where [['parent-id child-attr 'ident-val]
+                 '[(second ident-val) id-val*]
+                 '[(= id-val* id-val)]]
+         :args  [{'id-val ident-val}]}))))
+
+(comment
+  (get-parent :goal/subgoals #uuid "240b8e42-b8c2-41d6-b7de-74acce2e9c7e")
+  (get-parent :goal/subgoals [:goal/id #uuid "db08f619-e789-4dd1-8a9d-59991346bf6b"])
+  )
+
+(defn get-ancestors
+  "Repeatedly invokes 'get-parent' constructing an ordered vector of ids of all the parents to the root document.
+  (get-ancestors :goal/subgoals dm/goal-ident #uuid \"240b8e42-b8c2-41d6-b7de-74acce2e9c7e\")"
+  [child-attr ident-fn id-val]
+  (loop [ancestors () parent-id (get-parent child-attr (ident-fn id-val))]
+    (if parent-id
+      (recur (conj ancestors parent-id) (get-parent child-attr (ident-fn parent-id)))
+      (vec ancestors))))
+
+(comment
+  (get-ancestors :goal/subgoals dm/goal-ident #uuid "240b8e42-b8c2-41d6-b7de-74acce2e9c7e")
+  (get-ancestors :goal/subgoals dm/goal-ident #uuid "db08f619-e789-4dd1-8a9d-59991346bf6b")
+  )
+
+(comment
+  (get-parent :goal/subgoals
+    ;; top level
+    ;[:goal/id #uuid "240b8e42-b8c2-41d6-b7de-74acce2e9c7e"]
+
+    ;; nested subgoal
+    [:goal/id #uuid "db08f619-e789-4dd1-8a9d-59991346bf6b"]
+    ))
 
 ;; Pathom helpers
 
