@@ -250,6 +250,9 @@
   (get-parent :goal/subgoals [:goal/id #uuid '...']
   ident-val is either an ident or an id"
   [child-attr ident-val]
+
+  ;; todo  this logic needs to be udpated to work with keyword refs and map ref - the types of keys crux supports
+  ;; besides idents and uuids
   (if (fu/ident? ident-val)
     (ffirst
       (q crux-node
