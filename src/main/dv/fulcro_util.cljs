@@ -197,6 +197,14 @@
 (s/def ::opt-map (s/* (s/cat :k keyword? :v any?)))
 
 (>defn ui-textfield
+  "
+  (fu/ui-textfield this
+  \"Description\"
+        :habit/description
+        props
+        :tabIndex 1
+        :error-message \"Give the habit a description.\")
+  "
   [this label field-kw props & {:as opts}]
   [some? string? keyword? map? ::opt-map => some?]
   (let [value     (field-kw props)
@@ -477,7 +485,7 @@
   "Without args gives random UUID.
    With args, builds UUID based on input (useful in tests)."
   ([] [=> uuid?] (random-uuid))
-  ([s] [any? => any?] (cljs.core/uuid s)))
+  ([s] [string? => uuid?] (cljs.core/uuid s)))
 
 (defn deep-merge [x y]
   (cond
