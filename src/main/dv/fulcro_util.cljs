@@ -147,17 +147,16 @@
     (div :.ui.field
       (dom/label {:htmlFor label} label)
 
-      (if inline-err?
-        (div :.ui.input.field {:classes [(when show-err-msg? "error")]}
-          (ui-auto-focus-input input-props))
-        (ui-auto-focus-input input-props))
+      (cond->> (ui-auto-focus-input input-props)
+        inline-err? (div :.ui.input.field {:classes [(when show-err-msg? "error")]}))
 
       (when inline-err?
         (dom/div :.ui.upward.pointing.red.basic.label
           {:style {:top "-19px"} :classes [(when (not show-err-msg?) "hidden")]} error-message))
 
-      (when-not inline-err? (dom/div :.ui.error.message {:classes [(when valid? "hidden")]}
-                              error-message)))))
+      (when-not inline-err?
+        (dom/div :.ui.error.message {:classes [(when valid? "hidden")]}
+          error-message)))))
 
 (defn mark-fields-complete* [s ref fs]
   (reduce (fn [acc v] (fs/mark-complete* acc ref v)) s fs))
