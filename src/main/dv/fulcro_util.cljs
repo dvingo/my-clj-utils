@@ -195,6 +195,8 @@
 
 (s/def ::opt-map (s/* (s/cat :k keyword? :v any?)))
 
+;;; todo convert this into a defsc so that all the fields do not rerender.
+
 (>defn ui-textfield
   "
   (fu/ui-textfield this
@@ -232,6 +234,43 @@
                                        (m/set-string!! this field-kw :event %))}
                     opts)]
     (field props)))
+
+
+
+;; todo finish after stretching.
+(defsc TextField
+  [this props computed-props]
+  {:query [:ui/value :ui/field-kw]
+   }
+  (let [value     (field-kw props)
+        checked?  (fs/checked? props field-kw)
+        opts      (or opts {})
+        on-change (or (:onChange opts) identity)
+        opts      (dissoc opts :onChange)
+        cls       (c/react-type this)
+        props     (merge
+                    {:label         label
+                     :inline-err?   true
+                     :type          "text"
+                     :value         (or (str value) "")
+                     :checked?      checked?
+                     :valid?        (not (empty? (str value)))
+                     :error-message "Please enter a value"
+                     :onBlur        (fn [e]
+                                      (let [form-fields (or (fs/get-form-fields cls) #{})
+                                            v           (str/trim (e/target-value e))]
+                                        (m/set-string!! this field-kw :value v)
+                                        (when (form-fields field-kw)
+                                          (mark-complete! this field-kw))))
+                     :autoComplete  "off"
+                     :onChange      #(do
+                                       (on-change %)
+                                       (m/set-string!! this field-kw :event %))}
+                    opts)]
+    (field props))
+
+  )
+
 
 (defn ui-number-field
   [this label kw props & {:keys [min max] :as opts}]
