@@ -202,8 +202,6 @@
 
 (s/def ::opt-map (s/* (s/cat :k keyword? :v any?)))
 
-;;; todo convert this into a defsc so that all the fields do not rerender.
-
 (>defn ui-textfield
   "
   (fu/ui-textfield this
@@ -242,9 +240,6 @@
                     opts)]
     (field props)))
 
-
-
-;; todo finish after stretching.
 (defsc TextField
   [this
    {:keys [label value field-checked? error-message]
@@ -253,8 +248,8 @@
            field-checked? false
            error-message  "Please enter a value"}}
    {:keys [on-change on-blur valid?]
-    :or   {on-change identity}}
-   computed-props]
+    :or   {on-change identity}
+    :as   computed-props}]
   (let [opts (dissoc computed-props :on-change :on-blur :valid?)]
     (field
       (merge
@@ -291,7 +286,6 @@
   (let [timer (volatile! nil)]
     (fn [this label field-kw val]
       (field [this label field-kw val]))))
-
 
 (>defn ui-password2
   [this field-kw val & {:as opts}]
