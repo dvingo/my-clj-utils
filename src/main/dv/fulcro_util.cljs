@@ -122,6 +122,13 @@
 
 (defn ui-input [props] (react/createElement "input" (clj->js props)))
 
+(defsc Input
+  [this props]
+  {}
+  (react/createElement "input" (clj->js props)))
+
+(def ui-input2 (c/factory Input))
+
 (defsc AutoFocusInput [this props]
   {:initLocalState    (fn [this props]
                         (gobj/set this "inputRef" (react/createRef)))
@@ -239,38 +246,31 @@
 
 ;; todo finish after stretching.
 (defsc TextField
-  [this props computed-props]
-  {:query [:ui/value :ui/field-kw]
-   }
-  (let [value     (field-kw props)
-        checked?  (fs/checked? props field-kw)
-        opts      (or opts {})
-        on-change (or (:onChange opts) identity)
-        opts      (dissoc opts :onChange)
-        cls       (c/react-type this)
-        props     (merge
-                    {:label         label
-                     :inline-err?   true
-                     :type          "text"
-                     :value         (or (str value) "")
-                     :checked?      checked?
-                     :valid?        (not (empty? (str value)))
-                     :error-message "Please enter a value"
-                     :onBlur        (fn [e]
-                                      (let [form-fields (or (fs/get-form-fields cls) #{})
-                                            v           (str/trim (e/target-value e))]
-                                        (m/set-string!! this field-kw :value v)
-                                        (when (form-fields field-kw)
-                                          (mark-complete! this field-kw))))
-                     :autoComplete  "off"
-                     :onChange      #(do
-                                       (on-change %)
-                                       (m/set-string!! this field-kw :event %))}
-                    opts)]
-    (field props))
+  [this
+   {:keys [label value field-checked? error-message]
+    :or   {label          ""
+           value          ""
+           field-checked? false
+           error-message  "Please enter a value"}}
+   {:keys [on-change on-blur valid?]
+    :or   {on-change identity}}
+   computed-props]
+  (let [opts (dissoc computed-props :on-change :on-blur :valid?)]
+    (field
+      (merge
+        {:label         label
+         :inline-err?   true
+         :type          "text"
+         :value         (or (str value) "")
+         :checked?      field-checked?
+         :valid?        (not (empty? (str value)))
+         :error-message error-message
+         :onBlur        on-blur
+         :autoComplete  "off"
+         :onChange      on-change}
+        opts))))
 
-  )
-
+(def ui-textfield2 (c/computed-factory TextField))
 
 (defn ui-number-field
   [this label kw props & {:keys [min max] :as opts}]
