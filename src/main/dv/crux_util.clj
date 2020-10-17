@@ -396,16 +396,19 @@
   (crux/entity (crux/db crux-node valid-time) entity-id))
 
 (>defn read-merge-entity
-  "Update an existing entity using the given map, deals with fetching the entity first. does not write"
+  "Update an existing entity using the given map, deals with fetching the entity first. does not write
+  Returns nil if entity-id is nil or the document does not exist in crux."
   ([id-attr new-attrs]
-   [keyword? map? => map?]
+   [keyword? map? => (? map?)]
    (read-merge-entity crux-node id-attr new-attrs))
 
   ([crux-node id-attr new-attrs]
-   [some? keyword? map? => map?]
+   [some? keyword? map? => (? map?)]
    (let [entity-id         (id-attr new-attrs)
          entity-prev-value (entity crux-node entity-id)]
-     (merge entity-prev-value new-attrs {:crux.db/id entity-id}))))
+     (if (or (nil? entity-id) (nil? entity-prev-value))
+       nil
+       (merge entity-prev-value new-attrs {:crux.db/id entity-id})))))
 
 (comment
   (read-merge-entity :user/id {:user/id #uuid "2eb987f0-d580-4545-8b26-671ac8083260"}))
