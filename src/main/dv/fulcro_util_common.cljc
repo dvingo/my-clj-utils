@@ -15,7 +15,7 @@
 
 (defn error [& msg]
   #?(:cljs (js/Error. (apply str msg))
-     :clj (RuntimeException. (apply str msg))))
+     :clj  (RuntimeException. (apply str msg))))
 
 (defn conj-vec
   "Returns a map
@@ -39,6 +39,32 @@
     (mapcat
       #(filter some? (if (coll? %) % [%]))
       args)))
+
+(defn make-tree->vec
+  "Takes a single map or a vector that has a recursive property containing a tree of nested maps.
+  Traverses this structure into a vector of flattened entities with the highest depth entities first
+  in the output vector.
+  include-root? if true expects a single map as input containing a tree of attributes, otherwise
+  expects a vector of entities."
+  [subentities-key constructor include-root?]
+  (fn [coll-outer]
+    (if include-root?
+      (assert (map? coll-outer))
+      (assert (vector? coll-outer)))
+    (log/info "coll-outer: " coll-outer)
+    (vec
+      ((fn [coll out]
+         (log/info "coll: " coll)
+         (if (empty? coll)
+           out
+           (let [subentities (vec (mapcat subentities-key coll))]
+             (recur subentities (into out (mapv constructor coll))))))
+       (if include-root?
+         (subentities-key coll-outer)
+         coll-outer)
+       (if include-root?
+         (list (constructor coll-outer))
+         ())))))
 
 (comment
   (into-vec [1 2 nil 3] nil 5 [1 1]))

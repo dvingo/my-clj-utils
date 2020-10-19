@@ -147,7 +147,7 @@
 (comment (entity-id-for-prop crux-node [:val "1"]))
 
 (defn entity-with-prop
-  "eid - [:kw val]
+  "eid - either an ident [:kw val] or a plain crux id.
   Get an entity that has a property with value. copied from crux site
   (entity-with-prop [:email \"myaddress@addres.com\"])"
   ([eid] (entity-with-prop crux-node eid))
