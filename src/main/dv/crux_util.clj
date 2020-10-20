@@ -557,6 +557,62 @@
 (comment
   (get-nested-ids :ad-hoc-task/subtasks [[:ad-hoc-task/id #uuid "68203a9c-046c-432b-adb5-ff26873f9ab2"]] []))
 
+(defn make-has-nested-entity
+  "Returns a function that:
+  Returns true if the containing entity with the given id has the entity with the provided id
+  either in the top level collection or in any nested entities in the tree of entities.
+
+  user-id and entity-id can be maps or the ids.
+
+  Example, given a task-id which could live anywhere in a tree of tasks, and a user-id determine if the user's tasks
+  can reach (are a anscestor of) the given task-id.
+  For this structure:
+  {:user/id
+  :user/tasks [{:task/id ... :task/subtasks [{:task/id ... :task/subtasks []}]}
+  You'd pass to this function: :user/id :user/tasks :task/id :task/subtasks
+  "
+  [containing-entity-id-field
+   collection-field
+   entity-id-field
+   nested-field]
+
+  (fn [crux-node user-id entity-id]
+    (let [user-id   (cond-> user-id (map? user-id) containing-entity-id-field)
+          entity-id (cond-> entity-id (map? entity-id) entity-id-field)]
+      (or
+        ;; top level
+        (not (empty?
+               (q crux-node
+                 {:find  '[t1-id]
+                  :where [['u containing-entity-id-field 'user-id]
+                          ['u collection-field 't1-ident]
+                          '[(second t1-ident) t1-id]
+                          '[(= t1-id entity-id)]]
+                  :args  [{'user-id   user-id
+                           'entity-id entity-id}]})))
+
+        ;; nested entity
+        (not (empty?
+               (q crux-node
+                 {:find  '[t2-id]
+                  :where [['u containing-entity-id-field 'user-id]
+                          ['u collection-field 't1-ident]
+                          '[(second t1-ident) t1-id]
+                          ['x entity-id-field 't2-id]
+                          '[(= t2-id entity-id)]
+                          '(subentity t1-id t2-id)]
+                  :args  [{'user-id   user-id
+                           'entity-id entity-id}]
+
+                  :rules [['(subentity task1-id task2-id)
+                           ['task1-id nested-field 't2-ident]
+                           '[(second t2-ident) task2-idb]
+                           '[(= task2-id task2-idb)]]
+                          ['(subentity t1-id t2-id)
+                           ['t1-id nested-field 't3-ident]
+                           '[(second t3-ident) t3-id]
+                           '(subentity t3-id t2-id)]]})))))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Data migration
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
