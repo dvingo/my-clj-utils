@@ -2,13 +2,9 @@
   (:refer-clojure :exclude [uuid ident?])
   (:require
     [clojure.spec.alpha :as s]
-    [clojure.string :as str]
-    [clojure.walk :as walk]
     [com.fulcrologic.fulcro.algorithms.merge :as merge]
     [com.fulcrologic.fulcro.components :as c :refer [defsc]]
-    [com.fulcrologic.fulcro.dom.events :as e]
     [com.fulcrologic.guardrails.core :refer [>defn >def => | ?]]
-    [edn-query-language.core :as eql]
     [taoensso.timbre :as log])
   #?(:clj
      (:import [java.util UUID])))
@@ -25,6 +21,9 @@
 
 (defn conj-set [entity fkw val]
   (update entity fkw #(conj (or (set %) #{}) val)))
+
+(defn rm-from-vec [item a-vec]
+  (vec (remove #(= item %) a-vec)))
 
 (defn map->vec [m]
   (vec (mapcat identity m)))
@@ -44,6 +43,7 @@
   "Takes a single map or a vector that has a recursive property containing a tree of nested maps.
   Traverses this structure into a vector of flattened entities with the highest depth entities first
   in the output vector.
+
   include-root? if true expects a single map as input containing a tree of attributes, otherwise
   expects a vector of entities."
   [subentities-key constructor include-root?]

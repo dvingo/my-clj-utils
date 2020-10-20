@@ -211,7 +211,8 @@
 
 
 (defmacro validity-check
-  "Used in pathom resolvers and mutations."
+  "Used in pathom resolvers and mutations.
+  Macro, like cond but any true case returns a server-error map."
   [& args]
   `(when-let
      [msg# (cond ~@args)]
