@@ -27,7 +27,7 @@ Deploy it to Clojars -- needs `CLOJARS_USERNAME` and `CLOJARS_PASSWORD` environm
 
 # Deploy notes for clojars
 
-1. Update the version of the maven package in pom.xml.
+1. Update the version of the maven package in pom.xml - and git commit it.
 2. Build the jar
    make
 3. CLOJARS_USERNAME='' CLOJARS_PASSWORD='deploy_token' clojure -A:deploy 
