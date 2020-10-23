@@ -24,3 +24,10 @@ Install it locally:
 Deploy it to Clojars -- needs `CLOJARS_USERNAME` and `CLOJARS_PASSWORD` environment variables:
 
     $ clojure -A:deploy
+
+# Deploy notes for clojars
+
+1. Update the version of the maven package in pom.xml.
+2. Build the jar
+   make
+3. CLOJARS_USERNAME='' CLOJARS_PASSWORD='deploy_token' clojure -A:deploy 
