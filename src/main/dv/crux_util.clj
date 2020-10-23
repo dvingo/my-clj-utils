@@ -272,6 +272,11 @@
   (get-parent :goal/subgoals [:goal/id #uuid "db08f619-e789-4dd1-8a9d-59991346bf6b"])
   )
 
+(defn get-parent-entity
+  "Same as 'get-parent' but invokes crux/entity on the ID."
+  [child-attr ident-val]
+  (entity crux-node (get-parent child-attr ident-val)))
+
 (defn get-ancestors
   "Repeatedly invokes 'get-parent' constructing an ordered vector of ids of all the parents to the root document.
   (get-ancestors :goal/subgoals dm/goal-ident #uuid \"240b8e42-b8c2-41d6-b7de-74acce2e9c7e\")"

@@ -11,7 +11,7 @@
 
 (defn error [& msg]
   #?(:cljs (js/Error. (apply str msg))
-     :clj  (RuntimeException. (apply str msg))))
+     :clj (RuntimeException. (apply str msg))))
 
 (defn conj-vec
   "Returns a map
@@ -51,10 +51,8 @@
     (if include-root?
       (assert (map? coll-outer))
       (assert (vector? coll-outer)))
-    (log/info "coll-outer: " coll-outer)
     (vec
       ((fn [coll out]
-         (log/info "coll: " coll)
          (if (empty? coll)
            out
            (let [subentities (vec (mapcat subentities-key coll))]
