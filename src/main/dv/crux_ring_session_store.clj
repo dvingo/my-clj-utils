@@ -34,7 +34,6 @@
       {}))
 
   (write-session [_ key data]
-    ;(log/info "writing session: at key: " key)
     (let [key     (try (cond-> key (some? key) UUID/fromString)
                        (catch Exception e (UUID/randomUUID)))
           key     (or key (UUID/randomUUID))

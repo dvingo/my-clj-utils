@@ -12,11 +12,12 @@
   ([component {::keys [wrap-root? root-state use-sablono? use-reagent?]
                :or    {wrap-root? true}
                :as    opts}]
-   (let [id     (UUID/randomUUID)
-         app    (symbol (str (name component) "devcards-fulcro3-app"))
-         config (gensym "config")]
+   (let [id         (UUID/randomUUID)
+         app        (symbol (str (name component) "devcards-fulcro3-app"))
+         config     (gensym "config")]
      `(let [~config
             {::root                      ~component
+             ::root-state                ~root-state
              ::wrap-root?                ~wrap-root?
              ::persistence-key           ~id
              ::app                       (cond-> {}

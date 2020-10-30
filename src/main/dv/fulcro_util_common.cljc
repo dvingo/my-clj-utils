@@ -39,6 +39,20 @@
       #(filter some? (if (coll? %) % [%]))
       args)))
 
+(defn group-by-flat
+  "Same as clojure.core/group-by but the value is a map instead of a vector - useful when there is a unique value per group."
+  [group-fn coll]
+  (map-vals
+    first
+    (group-by group-fn coll)))
+
+(comment
+  (let [hrs
+        [{:habit-record/id #uuid "989c5c6f-d73a-4d42-80e2-a544cc76ffab", :habit-record/date #inst "2020-10-24", :habit-record/state :incomplete}
+         {:habit-record/id #uuid "948ab743-cff3-4dd0-8f9d-a4a30db2dc5f", :habit-record/date #inst "2020-10-29", :habit-record/state :incomplete}
+         {:habit-record/id #uuid "d3618ce5-0157-48c7-b447-3c504556daa7", :habit-record/date #inst "2020-10-27", :habit-record/state :incomplete}]]
+    (group-by-flat :habit-record/date hrs) ))
+
 (defn make-tree->vec
   "Takes a single map or a vector that has a recursive property containing a tree of nested maps.
   Traverses this structure into a vector of flattened entities with the highest depth entities first

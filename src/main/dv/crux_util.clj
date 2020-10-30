@@ -365,7 +365,8 @@
   (join-ref :task/id #uuid"ec0c6600-5f33-4d2d-844e-7da15586edcb"))
 
 (>defn pathom-expand-entity
-  "Returns an entity from crux with modifications.
+  "Returns an entity (a map) from crux with modifications.
+
   Fields is vec of tuples kw, updates from plain ids as come out of db into maps
   with the field name as key and val as the id itself, as required for pathom
   to process a join."
