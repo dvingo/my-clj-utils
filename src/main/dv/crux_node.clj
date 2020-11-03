@@ -24,6 +24,7 @@
 
 (comment (cn/start-crux-node "crux-store"))
 
-(defstate crux-node
+(def crux-node nil)
+#_(defstate crux-node
   :start (start-crux-rocks-node "crux-store")
   :stop (.close crux-node))
