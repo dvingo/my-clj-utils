@@ -1,7 +1,7 @@
 (ns dv.devcards-fulcro3
   (:require-macros [dv.devcards-fulcro3 :refer [make-card]])
   (:require
-    [borkdude.dynaload-cljs :refer-macros [dynaload]]
+    [borkdude.dynaload :refer [dynaload]]
     [cljs.spec.alpha :as s]
     [com.fulcrologic.fulcro.algorithms.merge :as f.merge]
     [com.fulcrologic.fulcro.algorithms.normalize :refer [tree->db]]
