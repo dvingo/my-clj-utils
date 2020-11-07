@@ -208,8 +208,9 @@
 (defn domain-entity
   "Invokes crux/entity and adds db/created-at and db/updated-at to the return value."
   [crux-node id]
-  (merge (entity crux-node (if (fu/ref? id) (second id) id))
-    (get-timestamps crux-node id)))
+  (let [id (if (fu/ref? id) (second id) id)]
+    (merge (entity crux-node id)
+      (get-timestamps crux-node id))))
 
 (comment
   (domain-entity #uuid "e0fdda94-5cfe-4062-bf2a-1cdb2521e4f9"))
@@ -455,9 +456,10 @@
       (merge-entity crux-node id (assoc-crux-id id-kw m))
       (throw (Exception. (str "Missing id field: " id-kw " in map: " m))))))
 
-(defn ensure-key [k]
+(>defn ensure-key
+  [k]
+  [(s/or :id id? :str string?) => uuid?]
   (if (id? k) k (UUID/fromString k)))
-
 
 (defn delete-all
   "Synchronously deletes all the passed ids (can be either idents or ids)."

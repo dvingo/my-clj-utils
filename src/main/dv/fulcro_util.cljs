@@ -76,6 +76,10 @@
     :else (Math/min max (Math/max min (to-int num-str)))))
 
 (defn listen
+  "goog.events.listen to channel
+   (listen js/global (.-MOUSEMOVE EventType))
+   https://google.github.io/closure-library/api/goog.events.EventType.html
+  "
   ([el type]
    (let [out (chan)]
      (events/listen el type
