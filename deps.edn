@@ -46,10 +46,10 @@
            :jar       {:extra-deps {seancorfield/depstar {:mvn/version "1.0.94"}}
                        :main-opts  ["-m" "hf.depstar.jar" "dv.clj-utils.jar"]}
 
-           :install   {:extra-deps {deps-deploy {:mvn/version "0.0.9"}}
+           :install   {:extra-deps {deps-deploy/deps-deploy {:mvn/version "0.0.9"}}
                        :main-opts  ["-m" "deps-deploy.deps-deploy" "install" "dv.clj-utils.jar"]}
 
-           :deploy    {:extra-deps {deps-deploy {:mvn/version "0.0.9"}}
+           :deploy    {:extra-deps {deps-deploy/deps-deploy {:mvn/version "0.0.9"}}
                        :main-opts  ["-m" "deps-deploy.deps-deploy" "deploy" "dv.clj-utils.jar"]}
 
            :dev       {:extra-paths ["src/test" "src/dev" "src/workspaces"]
