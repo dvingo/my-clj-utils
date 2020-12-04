@@ -49,7 +49,9 @@
   [entity fkw val]
   (update entity fkw #(conj (or % []) val)))
 
-(defn conj-set [entity fkw val]
+(defn conj-set
+  "Returns a map ensures an element val is in a set the prop fkw"
+  [entity fkw val]
   (update entity fkw #(conj (or (set %) #{}) val)))
 
 (defn map->vec [m]

@@ -13,6 +13,9 @@
   #?(:cljs (js/Error. (apply str msg))
      :clj (RuntimeException. (apply str msg))))
 
+(defn throw [& msg]
+  (throw (apply error msg)))
+
 (defn conj-vec
   "Returns a map
    adds an element val to the given entity at the prop fkw"
@@ -21,6 +24,11 @@
 
 (defn conj-set [entity fkw val]
   (update entity fkw #(conj (or (set %) #{}) val)))
+
+(defn disj-set
+  "Returns a map ensures an element val is _not_ in a set the prop fkw"
+  [entity fkw val]
+  (update entity fkw #(disj (or (set %) #{}) val)))
 
 (defn rm-from-vec [item a-vec]
   (vec (remove #(= item %) a-vec)))

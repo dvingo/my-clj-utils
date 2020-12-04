@@ -105,14 +105,17 @@
   (and (inst? v)
     (not (nan? (.valueOf v)))))
 
+;; you probably want to use logic like:
+;; https://github.com/dvingo/cljs-emotion/blob/master/src/main/dv/cljs_emotion_reagent.cljc#L126
 (defn react-factory [el]
   (fn
-    ([] (react/createElement el #js{}))
+    ([] (react/createElement el))
     ([props & children]
-     ;(log/info "in react factory props:" props )
      (if (seq children)
        (apply react/createElement el (clj->js props) (apply array children))
-       (react/createElement el (clj->js props))))))
+       (if (react/isValidElement props)
+         (react/createElement el nil props)
+         (react/createElement el (clj->js props)))))))
 
 (def email-regex #"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,63}$")
 (comment (re-matches email-regex "HI@HI.com"))

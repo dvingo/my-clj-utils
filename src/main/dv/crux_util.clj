@@ -471,6 +471,21 @@
       (crux/submit-tx crux-node
         (mapv (fn [i] [:crux.tx/delete (ensure-key i)]) ids)))))
 
+(defn put-tx
+  "returns: [:crux.tx/put doc]"
+  ([doc] [:crux.tx/put doc])
+  ([doc valid-time] [:crux.tx/put doc valid-time]))
+
+(defn delete-tx
+  "returns: [:crux.tx/delete (ensure-key id)]"
+  [id]
+  [:crux.tx/delete (ensure-key id)])
+
+(defn submit-sync
+  [crux-node tx]
+  (log/info "submitting tx: " tx)
+  (crux/await-tx crux-node (crux/submit-tx crux-node tx)))
+
 (defn delete
   "Key is either [:some-prop \"value\"]
   or a value for crux.db/id"
@@ -542,13 +557,12 @@
   :user/tasks [{:task/id ... :task/subtasks [{:task/id ... :task/subtasks []}]}
   You'd pass to this function: :user/id :user/tasks :task/id :task/subtasks
   "
-  [crux-node
-   containing-entity-id-field
+  [containing-entity-id-field
    collection-field
    entity-id-field
    nested-field]
 
-  (fn [user-id entity-id]
+  (fn [crux-node user-id entity-id]
     (let [user-id   (cond-> user-id (map? user-id) containing-entity-id-field)
           entity-id (cond-> entity-id (map? entity-id) entity-id-field)]
       (or
