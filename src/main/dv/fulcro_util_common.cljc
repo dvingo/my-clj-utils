@@ -13,6 +13,10 @@
   #?(:cljs (js/Error. (apply str msg))
      :clj (RuntimeException. (apply str msg))))
 
+(defn clamp [min max val]
+  #?(:cljs (js/Math.min (js/Math.max min val) max)
+     :clj (Math/min (Math/max min val) max)))
+
 (defn throw [& msg]
   (throw (apply error msg)))
 
@@ -59,7 +63,7 @@
         [{:habit-record/id #uuid "989c5c6f-d73a-4d42-80e2-a544cc76ffab", :habit-record/date #inst "2020-10-24", :habit-record/state :incomplete}
          {:habit-record/id #uuid "948ab743-cff3-4dd0-8f9d-a4a30db2dc5f", :habit-record/date #inst "2020-10-29", :habit-record/state :incomplete}
          {:habit-record/id #uuid "d3618ce5-0157-48c7-b447-3c504556daa7", :habit-record/date #inst "2020-10-27", :habit-record/state :incomplete}]]
-    (group-by-flat :habit-record/date hrs) ))
+    (group-by-flat :habit-record/date hrs)))
 
 (defn make-tree->vec
   "Takes a single map or a vector that has a recursive property containing a tree of nested maps.
@@ -722,3 +726,10 @@
           (format "ffffffff-ffff-ffff-ffff-%012d" int-or-str))
         (UUID/fromString int-or-str))))
    )
+
+(defn registry-key->class
+  [kw-or-sym]
+  (if-let [cls (c/registry-key->class kw-or-sym)]
+    cls
+    (throw (error (str "Class component: " kw-or-sym
+                    " is not in the registry, you probably need to require the namespace it lives in.")))))

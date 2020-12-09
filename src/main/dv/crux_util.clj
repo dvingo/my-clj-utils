@@ -206,7 +206,8 @@
   )
 
 (defn domain-entity
-  "Invokes crux/entity and adds db/created-at and db/updated-at to the return value."
+  "Invokes crux/entity and adds db/created-at and db/updated-at to the return value.
+  Id can be an ident or an id."
   [crux-node id]
   (let [id (if (fu/ref? id) (second id) id)]
     (merge (entity crux-node id)

@@ -172,7 +172,12 @@
         (dom/div :.ui.error.message {:classes [(when valid? "hidden")]}
           error-message)))))
 
-(defn mark-fields-complete* [s ref fs]
+(defn mark-fields-complete*
+  "
+  - state map
+  - ident of component
+  - seq of fields to mark complete"
+  [s ref fs]
   (reduce (fn [acc v] (fs/mark-complete* acc ref v)) s fs))
 
 (defn reset-form* [s ident]
@@ -246,6 +251,8 @@
                                        (m/set-string!! this field-kw :event %))}
                     opts)]
     (field props)))
+
+;; Defsc so you get shouldComponentUpdate perf gains when props don't change.
 
 (defsc TextField
   [this
