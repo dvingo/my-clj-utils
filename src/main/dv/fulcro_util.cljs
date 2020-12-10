@@ -478,7 +478,7 @@
 
 (defn validator-state [this validator]
   (assert (c/component-instance? this))
-  (let [cls               (c/get-class this)
+  (let [cls               (c/react-type this)
         props             (c/props this)
         fields            (fs/get-form-fields cls)
         valid-state       (validator props)
@@ -488,6 +488,7 @@
                             (and (= :unchecked valid-state) (not all-fields-valid?)))]
     {:checked?  (fs/checked? props)
      :dirty?    dirty?
+     :valid?    (= :valid valid-state)
      :disabled? disabled?}))
 
 (defn get-server-mutation-err
