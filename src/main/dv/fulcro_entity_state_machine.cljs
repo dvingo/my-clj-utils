@@ -17,7 +17,8 @@
 (defn get-active-state [env]
   (get-in env [::sm/state-map ::sm/asm-id (sm/asm-id env) ::sm/active-state]))
 
-(defn assoc-active-state [env]
+(defn assoc-active-state
+  [env]
   (let [cur-state (get-active-state env)]
     (-> env
       (sm/assoc-aliased :machine-state cur-state)
@@ -35,12 +36,10 @@
 
 (defn handle-submit
   [{::sm/keys [event-data] :as env}]
-  (log/info "in handle-submit")
   (let [{:keys [entity remote-mutation mutation target target-xform on-reset-mutation on-reset creating?]} event-data
         form-cls      (sm/actor-class env :actor/form)
         form-instance (actor->inst :actor/form env)
         item-cls      (sm/actor-class env :actor/new-item)
-        ;; for some reason the default global-eql-transform is not eliding nested keys
         remote-entity (fu/elide-client-only-values entity)]
     (when mutation (c/transact! form-instance `[(~mutation)]))
     (-> env
