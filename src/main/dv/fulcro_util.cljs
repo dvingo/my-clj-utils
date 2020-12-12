@@ -141,9 +141,11 @@
                         (gobj/set this "inputRef" (react/createRef)))
    :componentDidMount (fn [this]
                         (when (:autofocus? (c/props this))
-                          (-> this
-                            (gobj/getValueByKeys "inputRef" "current")
-                            (.focus))))}
+                          ;; Needed when using inside a portal otherwise the input will not focus
+                          (js/setTimeout
+                            #(-> this
+                               (gobj/getValueByKeys "inputRef" "current")
+                               (.focus)))))}
   (ui-input
     (merge
       (dissoc props :autofocus?)
@@ -151,9 +153,10 @@
 
 (def ui-auto-focus-input (c/factory AutoFocusInput))
 
-(defn field [{:keys [label checked? valid? error-message inline-err?]
-              :or   {inline-err? false}
-              :as   props}]
+(defn field
+  [{:keys [label checked? valid? error-message inline-err?]
+    :or   {inline-err? false}
+    :as   props}]
   (let [input-props   (-> props
                         (assoc :name label)
                         (dissoc :checked? :label :valid? :error-message :inline-err?))
@@ -261,10 +264,11 @@
            value          ""
            field-checked? false
            error-message  "Please enter a value"}}
-   {:keys [on-change on-blur valid?]
-    :or   {on-change identity}
+   {:keys [on-change on-blur valid? on-key-down]
+    :or   {on-change   identity
+           on-key-down identity}
     :as   computed-props}]
-  (let [opts (dissoc computed-props :on-change :on-blur :valid?)]
+  (let [opts (dissoc computed-props :on-key-down :on-change :on-blur :valid?)]
     (field
       (merge
         {:label         label
@@ -276,6 +280,7 @@
          :error-message error-message
          :onBlur        on-blur
          :autoComplete  "off"
+         :onKeyDown     on-key-down
          :onChange      on-change}
         opts))))
 

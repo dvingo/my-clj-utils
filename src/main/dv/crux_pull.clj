@@ -343,13 +343,6 @@
 ;   (dpp/parse-pull [:task/description])
 ;   (dpp/parse-pull [{:user/habits [:task/id :task/description]} :user/id])
 ;
-;   (dpp/parse-pull [:name {:children 1}])
-;   (dpp/parse-pull ['*])
-;   (dpp/parse-pull [{:user/habits ['*]} :user/id])
-;   (dpp/parse-pull [:name {:children '...}])
-;   (dpp/parse-pull [{:hi [:prop-a]} :prop-b])
-;   (dpp/parse-pull [{:hi [:prop-a]} :prop-b])
-;
 ;   (pull crux-node [:name {:children 1}] :task-1)
 ;   (pull crux-node [[:name :as :other] {[:children :limit 2] '...}] :task-1)
 ;
