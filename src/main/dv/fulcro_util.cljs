@@ -623,9 +623,15 @@
 
 (defn elide-client-only-values
   [m]
-  (walk/postwalk
-    (fn [x] (if (map? x) (elide-client-only-values* x) x))
-    m))
+  (cond
+    (vector? m)
+    (mapv elide-client-only-values m)
+
+    (map? m)
+    (walk/postwalk
+      (fn [x] (if (map? x) (elide-client-only-values* x) x))
+      m)
+    :else m))
 
 ;; testing elide-values
 
