@@ -205,17 +205,16 @@
   (history crux-node #uuid"c6836add-b0d7-4ddc-83d1-fb6ed95b8d10" :asc {:with-docs? false})
   )
 
-(defn domain-entity
+(>defn domain-entity
   "Invokes crux/entity and adds db/created-at and db/updated-at to the return value.
   Id can be an ident or an id."
   [crux-node id]
+  [crux-node? (s/or :ref fu/ref? :uuid fu/id?) => (? map?)]
   (let [id (if (fu/ref? id) (second id) id)]
     (merge (entity crux-node id)
       (get-timestamps crux-node id))))
 
-(comment
-  (domain-entity #uuid "e0fdda94-5cfe-4062-bf2a-1cdb2521e4f9"))
-
+(comment (domain-entity crux-node #uuid "e0fdda94-5cfe-4062-bf2a-1cdb2521e4f9"))
 
 ;; Ancestor and parent query helpers
 
