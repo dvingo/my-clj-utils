@@ -71,6 +71,17 @@
   [field m]
   (assoc m :crux.db/id (get m field)))
 
+(defn assoc-timestamps [now m]
+  (assoc m :db/created-at now
+           :db/updated-at now))
+
+(>defn assoc-db-fields
+  [id-field now m]
+  [qualified-keyword? inst? map? => map?]
+  (assoc m :db/created-at now
+           :db/updated-at (or (:db/created-at m) now)
+           :crux.db/id (get m id-field)))
+
 (defn insert-entity
   "Invokes put on the passed in map after associng crux.db/id onto the map.
   uses id-kw - keyword to get an id val for this entity to add crux.db/id to insert"
@@ -521,8 +532,8 @@
       (if (not (empty? subentities))
         (recur crux-node
           property
-          (vec (concat remaining subentities)) ;; new input
-          (into (mapv second subentities) output)) ;; new output
+          (vec (concat remaining subentities))              ;; new input
+          (into (mapv second subentities) output))          ;; new output
         (recur crux-node property remaining output)))))
 
 (>defn get-nested-ids
