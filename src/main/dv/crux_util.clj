@@ -36,9 +36,8 @@
 
 (defn put-async
   [crux-node data]
-  (let [data (dissoc data :db/created-at :db/updated-at)]
-    (log/info "Transacting data: " data)
-    (crux/submit-tx crux-node [[:crux.tx/put data]])))
+  (log/info "Transacting data: " data)
+  (crux/submit-tx crux-node [[:crux.tx/put data]]))
 
 (defn put
   [crux-node doc]

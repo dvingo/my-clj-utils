@@ -108,12 +108,15 @@
            env-additions
            trace?
            index-explorer?
-           sensitive-keys]}]
+           sensitive-keys
+           handle-errors?]
+    :or
+    {handle-errors? true}}]
   (when (and env-additions (not (fn? env-additions)))
     (throw (Exception. "build-parser: env-additions must be a function.")))
 
   (let [sensitive-keys (conj (set sensitive-keys) :com.wsscode.pathom/trace)
-        handle-errors? true
+        handle-errors? handle-errors?
         parser         (p/parser
                          {::p/mutate  pc/mutate
                           ::p/env     {::p/reader

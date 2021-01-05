@@ -500,8 +500,8 @@
   [result-or-env]
   (let [result       (or (some-> result-or-env ::sm/event-data ::sm/mutation-result) result-or-env)
         body         (:body result)
-        mutation-sym (-> body keys first)]
-    (let [error (-> body mutation-sym :server/message)]
+        mutation-sym (some-> body keys first)]
+    (let [error (some-> body mutation-sym :server/message)]
       (if (nil? error)
         "There was an error sending your request."
         error))))
