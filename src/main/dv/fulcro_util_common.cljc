@@ -143,8 +143,8 @@
     (some? (get m kw))
     (update kw
       (fn [vs]
-        (when (not (coll? vs))
-          (throw (error (str "Property is not a collection: " (pr-str kw) " val: " (pr-str vs)))))
+        (when (not (sequential? vs))
+          (throw (error (str "Property is not a sequential collection: " (pr-str kw) " val: " (pr-str vs)))))
         (mapv #(->ident id-kw %) vs)))))
 
 (defn ref->id
