@@ -211,6 +211,12 @@
     (catch RuntimeException e
       (printf "Error parsing edn file '%s': %s\n" source (.getMessage e)))))
 
+(defn load-edn-nil
+  "Load edn from an io/reader source
+  Tries to read as resource first then filename.
+  Returns nil on any exceptions."
+  [source]
+  (try (load-edn source) (catch Exception _ nil)))
 
 (defmacro validity-check
   "Used in pathom resolvers and mutations.
