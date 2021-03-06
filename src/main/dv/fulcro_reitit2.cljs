@@ -131,11 +131,13 @@
     segment
     (throw (js/Error. (str "No matching fulcro segment for route: " (pr-str name))))))
 
-(defn route-href
-  ([id] (rfe/href id))
-  ([id props] (rfe/href id props)))
-
-;; todo could move this and others to impl ns
+(>defn route-href
+  ([id]
+   [keyword? => string?]
+   (rfe/href id))
+  ([id props]
+   [keyword? any? => string?]
+   (rfe/href id props)))
 
 (defn construct-fulcro-segments [match-data]
   (let [segment (-> match-data :data :segment)]
@@ -145,8 +147,8 @@
 
 (>defn current-fulcro-route
   [app]
-  [app/fulcro-app? => vector?]
-  (-> app router-state :current-fulcro-route))
+  [::comp-or-app => vector?]
+  (-> (c/any->app app) router-state :current-fulcro-route))
 
 ;; todo support query-params also, by merging
 
@@ -242,11 +244,15 @@
 
 (comment (route=url? :goals {:date "2020-05-12"}))
 
+
+(>def ::comp-or-app (s/or :c c/component?
+                      :a app/fulcro-app?))
 (>defn change-route!
   "Invokes reitit-fe-easy/push-state unless the current URL is the route-key already."
   ([app route-key]
-   [app/fulcro-app? keyword? => any?]
-   (let [router         (router-state app)
+   [::comp-or-app keyword? => any?]
+   (let [app            (c/any->app app)
+         router         (router-state app)
          routes-by-name (:routes-by-name router)
          {:keys [name] :as route} (get routes-by-name route-key)]
      (when-not (route=url? app route-key {})
@@ -254,8 +260,9 @@
        (rfe/push-state name))))
 
   ([app route-key params]
-   [app/fulcro-app? keyword? map? => any?]
-   (let [routes-by-name (router-state app :routes-by-name)
+   [::comp-or-app keyword? map? => any?]
+   (let [app            (c/any->app app)
+         routes-by-name (router-state app :routes-by-name)
          {:keys [name] :as route} (get routes-by-name route-key)]
      (when-not (route=url? app route-key params)
        (log/info "Changing route to : " route)
