@@ -368,7 +368,9 @@
               ;; rendering each other. If there is nesting in the data, that doesn't make sense so throw an error.
 
               ;; only one route
+              ;; todo support for single route with nesting
               (string? f) (conj acc route)
+
               ;; many routes
               (vector f)
               (if-let [nested-routers (get-routers-from-query t)]
@@ -483,7 +485,7 @@
   route-targets on the fulcro router and registers a reitit router within the fulcro application."
   [app fulcro-router]
   [app/fulcro-app? dr/router? => any?]
-  (let [routes (gather-routes fulcro-router)]
+  (let [routes (gather-recursive fulcro-router)]
     (log/info "Registering reitit routes: " routes)
     (register-routes! app routes)))
 
