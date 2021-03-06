@@ -151,7 +151,10 @@
    (rfe/href id))
   ([id props]
    [keyword? any? => string?]
-   (rfe/href id props)))
+   (rfe/href id props))
+  ([id props query]
+   [keyword? map? map? => string?]
+   (rfe/href id props query)))
 
 (defn construct-fulcro-segments [match-data]
   (let [segment (-> match-data :data :segment)]
