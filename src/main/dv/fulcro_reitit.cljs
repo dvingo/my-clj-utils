@@ -48,13 +48,23 @@
 ;   ["/goals" {:name :goals :redirect-to {:route :goals-date :params (fn [] {:date (t/today)})}}]
 
 (defrecord Router
-  [app reitit-router routes-by-name current-fulcro-route
-   redirect-loop-count max-redirect-loop-count])
+  [app
+   reitit-router
+   routes-by-name
+   current-fulcro-route
+   redirect-loop-count
+   max-redirect-loop-count])
 
 (defn- router? [x] (instance? Router x))
 
 (def ^{:private true} max-redirect-loop-count 10)
 
+;;;; why not just put the state in the fulcro state atom?
+;; it's a valid question - one idea is to swap directly against the
+;; state atom without triggering UI updates.
+
+;    https://book.fulcrologic.com/#_swapping_on_the_state_atom
+;;;;
 (defn router-state [r]
   {:app                     (:app r)
    :reitit-router           (:reitit-router r)
@@ -136,6 +146,19 @@
 (defn set-redirect-loop-count! [router v]
   (vreset! (:redirect-loop-count router) v))
 
+
+(defn handle-redirect [router route params]
+  (let [params (params)
+        {:keys [max-redirect-loop-count redirect-loop-count]} (router-state router)]
+    (do (log/info "redirecting to: " route " with params " params)
+        (if (> redirect-loop-count max-redirect-loop-count)
+          (do
+            (log/error (str "The route " route " hit the max redirects limit: " max-redirect-loop-count))
+            (set-redirect-loop-count! router 0))
+          (do
+            (vswap! (:redirect-loop-count router) inc)
+            (js/setTimeout #(rfe/replace-state route params)))))))
+
 ;; Looks like the first match comes in as nil when init! is called.
 ;; read from the current url in that case.
 ;; not sure if nil is passed only if the current url doesn't match any
@@ -157,17 +180,7 @@
 
       ;; route has redirect
       (if-let [{:keys [route params]} (get-in m [:data :redirect-to])]
-        (let [params (params)
-              {:keys [max-redirect-loop-count redirect-loop-count]} (router-state router)]
-          (do (log/info "redirecting to: " route " with params " params)
-              (if (> redirect-loop-count max-redirect-loop-count)
-                (do
-                  (log/error (str "The route " route " hit the max redirects limit: " max-redirect-loop-count))
-                  (set-redirect-loop-count! router 0))
-                (do
-                  (vswap! (:redirect-loop-count router) inc)
-                  (js/setTimeout #(rfe/replace-state route params))))))
-
+        (handle-redirect router route params)
         (let [fulcro-segment       (fulcro-segment-from-match m)
               current-fulcro-route (:current-fulcro-route router)]
           (log/info "Invoking Fulcro change route with " fulcro-segment)
