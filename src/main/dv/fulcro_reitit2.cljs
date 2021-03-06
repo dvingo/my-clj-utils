@@ -21,7 +21,6 @@
 ;    https://book.fulcrologic.com/#_swapping_on_the_state_atom
 ;;;;
 
-
 (defn reitit-router? [x] (satisfies? r/Router x))
 
 (>def ::name keyword?)
@@ -38,7 +37,7 @@
           ["/:date" {:name :calendar-date :segment [:date]}]]
          ["/signup" {:name :signup :segment ["signup"]}]]
         ]
-    (init-router-state {} routes )))
+    (init-router-state {} routes)))
 
 (>def ::reitit-router reitit-router?)
 (>def ::routes-by-name map?)
@@ -46,7 +45,7 @@
 (>def ::redirect-loop-count integer?)
 
 (def ^:dynamic *max-redirect-loop-count* 10)
-(>def ::max-redirect-loop-count (s/and integer? #(< % *max-redirect-loop-count*)))
+(>def ::max-redirect-loop-count (s/and integer? #(<= % *max-redirect-loop-count*)))
 
 (>def ::router-state
   (s/keys :req-un
@@ -74,7 +73,7 @@
    :max-redirect-loop-count])
 
 (>def ::deref-or-map (s/or :m map? :d #(satisfies? IDeref %)))
-(>def ::state-arg (s/or :d #(satisfies? IDeref %) :app app/fulcro-app? :m map? ))
+(>def ::state-arg (s/or :d #(satisfies? IDeref %) :app app/fulcro-app? :m map?))
 
 (>defn ->map
   "Get fulcro-state atom's underlying map.
@@ -93,21 +92,16 @@
         :d @v
         :app @(::app/state-atom v)))))
 
-(comment
-  (>def ::int? (s/or :i integer? :s string?)  )
-  (if-let [[k v] (s/conform ::int? 'hi)]
-    [k v]
-    'broke))
-
 (defn router-path
-  ([] [::router :router])
+  ([]
+   [::router :router])
   ([prop]
    ;[keyword? => (s/tuple qualified-keyword? keyword? keyword?)]
    [::router :router prop]))
 
-
 (defn map-vals [f m]
   (into {} (map (juxt key (comp f val))) m))
+
 (>defn make-routes-by-name
   "Returns a map like: {:root {:name :root :path '/'}}"
   [router]
@@ -131,27 +125,30 @@
       (assoc-in [::router :router :redirect-loop-count] 0)
       (assoc-in [::router :router :max-redirect-loop-count] *max-redirect-loop-count*))))
 
+(defn router-state* [app]
+  (-> app ::app/runtime-atom deref (get-in (router-path))))
+
+(>defn router-registered?
+  [app]
+  [app/fulcro-app? => boolean?]
+  (boolean (router-state* app)))
+
 (>defn router-state
-  ([s]
-   [::state-arg => ::router-state]
-   (if-let [s (->map s)]
-     (-> s
-       (get-in (router-path))
+  ([app]
+   [app/fulcro-app? => ::router-state]
+   (if (router-registered? app)
+     (-> app
+       router-state*
        (select-keys router-state-keys))
-     (throw (js/Error. (str "Invalid state passed to router-state: " s)))))
-  ([s p]
-   [::state-arg keyword? => ::router-state]
-   (if-let [s (->map s)]
-     (-> s (get-in (router-path p)))
-     (throw (js/Error. "Invalid state passed to router-state: " s)))))
+     (throw (js/Error. "No router registered on fulcro app."))))
+  ([app p]
+   [app/fulcro-app? keyword? => any?]
+   (if (router-registered? app)
+     (get (router-state* app) p)
+     (throw (js/Error. "No router registered on fulcro app.")))))
 
-
-
-
-
-
-
-(defn route-segment [app name]
+(defn route-segment
+  [app name]
   (if-let [segment (some-> app (router-state :routes-by-name) name :segment)]
     segment
     (throw (js/Error. (str "No matching fulcro segment for route: " (pr-str name))))))
@@ -181,32 +178,38 @@
                               fulcro-segments)]
     target-segment))
 
-(defn set-redirect-loop-count! [router v]
-  (vreset! (:redirect-loop-count router) v))
 
+(defn set-route-state! [app prop v]
+  (swap! (::app/runtime-atom app)
+    (fn [s] (assoc-in s (router-path prop) v))))
 
-(defn handle-redirect [router route params]
+(defn update-route-state!
+  [app prop f]
+  (swap! (::app/runtime-atom app)
+    (fn [s] (update-in s (router-path prop) f))))
+
+(defn handle-redirect [app route params]
   (let [params (params)
-        {:keys [max-redirect-loop-count redirect-loop-count]} (router-state router)]
+        {:keys [max-redirect-loop-count redirect-loop-count]} (router-state app)]
     (do (log/info "redirecting to: " route " with params " params)
         (if (> redirect-loop-count max-redirect-loop-count)
           (do
             (log/error (str "The route " route " hit the max redirects limit: " max-redirect-loop-count))
-            (set-redirect-loop-count! router 0))
+            (set-route-state! app :redirect-loop-count 0))
           (do
-            (vswap! (:redirect-loop-count router) inc)
+            (update-route-state! app :redirect-loop-count inc)
+            #_(vswap! (router-state app :redirect-loop-count) inc)
             (js/setTimeout #(rfe/replace-state route params)))))))
 
 ;; Looks like the first match comes in as nil when init! is called.
 ;; read from the current url in that case.
 ;; not sure if nil is passed only if the current url doesn't match any
 ;; of your routes. Try it out.
-(def on-match identity)
-#_(defn on-match
+(defn on-match
   ""
   [app m]
   (log/info "on-match called with: " m)
-  (let [{:keys [app reitit-router]} (router-state app)
+  (let [{:keys [reitit-router]} (router-state app)
         m          (or m {:path (g/get js/location "pathname")})
         {:keys [path]} m
         has-match? (rf/match-by-path reitit-router path)]
@@ -219,41 +222,30 @@
 
       ;; route has redirect
       (if-let [{:keys [route params]} (get-in m [:data :redirect-to])]
-        (handle-redirect router route params)
-        #_(let [params (params)
-                {:keys [max-redirect-loop-count redirect-loop-count]} (router-state router)]
-            (do (log/info "redirecting to: " route " with params " params)
-                (if (> redirect-loop-count max-redirect-loop-count)
-                  (do
-                    (log/error (str "The route " route " hit the max redirects limit: " max-redirect-loop-count))
-                    (set-redirect-loop-count! router 0))
-                  (do
-                    (vswap! (:redirect-loop-count router) inc)
-                    (js/setTimeout #(rfe/replace-state route params))))))
-
+        (handle-redirect app route params)
         (let [fulcro-segment       (fulcro-segment-from-match m)
-              current-fulcro-route (:current-fulcro-route router)]
+              current-fulcro-route (router-state app :current-fulcro-route)]
           (log/info "Invoking Fulcro change route with " fulcro-segment)
-          (vreset! current-fulcro-route fulcro-segment)
+          (set-route-state! app :current-fulcro-route fulcro-segment)
           (dr/change-route! app fulcro-segment))))))
 
 (defn current-route [this]
   (some-> (dr/current-route this this) first keyword))
 
-(defn current-app-route [router]
-  (dr/current-route (:app router)))
+(defn current-app-route [app]
+  (dr/current-route app))
 
-(defn current-route-from-url [router]
-  (rf/match-by-path (:reitit-router router) (g/get js/location "pathname")))
+(defn current-route-from-url [app]
+  (rf/match-by-path (router-state app :reitit-router) (g/get js/location "pathname")))
 
 (defn current-route-name
   "Returns the keyword name of the current route as determined by the URL path."
-  [router]
-  (some-> (current-route-from-url router) :data :name))
+  [app]
+  (some-> (current-route-from-url app) :data :name))
 
 (defn route=url?*
-  [router route-key params {{curr-name :name} :data curr-params :path-params}]
-  (let [routes-by-name (:routes-by-name router)]
+  [app route-key params {{curr-name :name} :data curr-params :path-params}]
+  (let [routes-by-name (router-state app :routes-by-name)]
     (boolean
       (when-let [{:keys [name]} (routes-by-name route-key)]
         (and
@@ -263,53 +255,50 @@
 (defn route=url?
   "predicate does the :key like :goals {:date \"2020-05-20\"}
   match current reitit match of the url"
-  [router route-key params]
-  (route=url?* router route-key params (current-route-from-url router)))
+  [app route-key params]
+  (route=url?* app route-key params (current-route-from-url app)))
 
 (comment (route=url? :goals {:date "2020-05-12"}))
-
-
-
-
 
 (>defn change-route!
   "Invokes reitit-fe-easy/push-state unless the current URL is the route-key already."
   ([app route-key]
    [app/fulcro-app? keyword? => any?]
-   app
-   #_(let [router (router-state (::app/state-atom a)) routes-by-name (:routes-by-name router)
-           {:keys [name] :as route} (get routes-by-name route-key)]
-       (when-not (route=url? router route-key {})
-         (log/info "Changing route to: " route)
-         (rfe/push-state name))))
+   (let [router         (router-state app)
+         routes-by-name (:routes-by-name router)
+         {:keys [name] :as route} (get routes-by-name route-key)]
+     (when-not (route=url? app route-key {})
+       (log/info "Changing route to: " route)
+       (rfe/push-state name))))
 
   ([app route-key params]
    [app/fulcro-app? keyword? map? => any?]
-   #_(let [routes-by-name (:routes-by-name router)
+   (let [routes-by-name (router-state app :routes-by-name )
            {:keys [name] :as route} (get routes-by-name route-key)]
-       (when-not (route=url? router route-key params)
+       (when-not (route=url? app route-key params)
          (log/info "Changing route to : " route)
          (log/info "push state : " name " params: " params)
          (rfe/push-state name params)))))
 ;;;;;;;;;;; trying storing state in t
 
 (>defn start-router!
-  ""
+  "Starts reitit router listening to URL changes."
   [app]
   [app/fulcro-app? => any?]
-  (log/info "Starting router.")
   (let [reitit-router (router-state app :reitit-router)]
+    (log/info "Starting router: " reitit-router)
     (rfe/start! reitit-router (partial on-match app) {:use-fragment false})))
 
-(defn register-router! [app routes]
-  (let [{::app/keys [state-atom]} app]
-    (swap! state-atom
+(defn register-router!
+  "swap!s initial state for the router into the fulcro runtime-atom."
+  [app routes]
+  (let [{::app/keys [runtime-atom]} app]
+    (swap! runtime-atom
       (fn [s] (init-router-state s routes)))))
 
 (defn register-and-start-router! [app routes]
   (register-router! app routes)
   (start-router! app))
-
 
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -318,13 +307,4 @@ and not in the fulcro state-atom. - The fulcro app needs to be created at load t
 
 it needs to be used in will-enter (r/fulcro-segment SPA :my-route-name)
 "
-
-
-
-
-
-
-
-
-
 ;;
