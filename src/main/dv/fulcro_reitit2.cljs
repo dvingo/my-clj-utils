@@ -309,3 +309,22 @@
 (defn register-and-start-router! [app routes]
   (register-router! app routes)
   (start-router! app))
+
+
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+" I still think this setup would work if I store the router state on the application
+and not in the fulcro state-atom. - The fulcro app needs to be created at load time because
+
+it needs to be used in will-enter (r/fulcro-segment SPA :my-route-name)
+"
+
+
+
+
+
+
+
+
+
+;;
