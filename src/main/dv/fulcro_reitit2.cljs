@@ -3,23 +3,37 @@
     [cljs.spec.alpha :as s]
     [clojure.string :as str]
     [com.fulcrologic.fulcro.application :as app]
-    [com.fulcrologic.fulcro.components :as c]
+    [com.fulcrologic.fulcro.components :as c :refer [defsc]]
     [com.fulcrologic.fulcro.dom :as dom]
     [com.fulcrologic.fulcro.routing.dynamic-routing :as dr]
     [com.fulcrologic.guardrails.core :refer [>defn => | ? >def]]
-    [dv.fulcro-util :as fu]
-    [dv.fulcro-util :as fu]
+    [dv.fulcro-util-common :as fu]
+    [edn-query-language.core :as e]
     [goog.object :as g]
     [reitit.core :as r]
     [reitit.frontend :as rf]
     [reitit.frontend.easy :as rfe]
     [taoensso.timbre :as log]))
 
+(comment
+  (r/router
+    [["/" {:name :root, :segment ["tasks"]}]
+     ["/tasks" {:name :tasks, :segment ["tasks"]}
+      ["/:task-id/edit" {:segment ["edit" :task-id]}]
+      ["/:task-id" {:segment ["view" :task-id]}]]
+     #_["/signup" {:name :signup, :segment ["signup"]}]
+     #_["/calendar"
+        {:segment ["calendar"]}
+        ["" {:name :calendar, :segment ["cal"]}]
+        ["/:date" {:name :calendar-date, :segment [:date]}]]])
+
+  )
+
 (defn reitit-router? [x] (satisfies? r/Router x))
 
 (>def ::name keyword?)
 (>def ::segment (s/coll-of (s/or :s string? :k keyword? :fn fn?) :type vector?))
-(>def ::route-map (s/keys :req-un [::name ::segment] :opt-un [::redirect-to]))
+(>def ::route-map (s/keys :req-un [::segment] :opt-un [::name ::redirect-to]))
 (>def ::route (s/cat :s string? :r ::route-map))
 
 (>def ::reitit-router reitit-router?)
@@ -291,6 +305,156 @@
               (fu/deep-merge (initial-router-state routes) curr-route-state)))
           (assoc-router-state s (initial-router-state routes)))))))
 
+(>defn route-target?
+  [c]
+  [fn? => boolean?]
+  (boolean (c/component-options c ::route)))
+
+(defn comp->ast [c]
+  (-> c c/get-query e/query->ast))
+
+(defn not-empty? [c] (boolean (seq c)))
+;; compose recursive routes
+
+(defn query-has-router?
+  "Takes a component returns true if it joins at least one fulcro router in its query."
+  [c]
+  (let [{:keys [children]} (comp->ast c)]
+    (not-empty?
+      (filter
+        (fn [c]
+          (let [c2 (:component c)]
+            ;; when there is a component and that component is a router
+            (when c2
+              (and
+                (= (:type c) :join)
+                (dr/router? c2)))))
+        children))))
+
+(defn get-routers-from-query
+  [c]
+  (let [{:keys [children]} (comp->ast c)
+        ret (into []
+              (comp
+                (filter
+                  (fn [c]
+                    (let [c2 (:component c)]
+                      ;; when there is a component and that component is a router
+                      (when c2
+                        (and
+                          (= (:type c) :join)
+                          (dr/router? c2))))))
+                (map :component))
+              children)]
+    (not-empty ret)))
+
+;; also need to support multiple nested routers
+;;
+(defn gather-recursive
+  [fulcro-router]
+  (let [q              (c/get-query fulcro-router)
+        ast            (e/query->ast q)
+        children       (:children ast)
+        router-targets (dr/get-targets fulcro-router)]
+    (reduce
+      (fn [acc t]
+        (if-let [{::keys [route]} (c/component-options t)]
+          (let [f                  (first route)
+                has-nested-router? (query-has-router? t)
+                query              (c/get-query t)]
+            (log/info "route: " route)
+            (cond
+              ;; todo assert that the route portion at each level is "flat" - the nesting is now from the components
+              ;; rendering each other. If there is nesting in the data, that doesn't make sense so throw an error.
+
+              ;; only one route
+              (string? f) (conj acc route)
+              ;; many routes
+              (vector f)
+              (if-let [nested-routers (get-routers-from-query t)]
+                (let [sub-routes (map gather-recursive nested-routers)]
+                  (log/info "many: route" route)
+                  (log/info "many: sub-routes" sub-routes)
+                  (into acc
+                    (mapv
+                      (fn [r]
+                        (if (:alias (meta r))
+                          r
+                          (vec (apply concat r sub-routes))))
+                      route)))
+                (into acc route))
+              :else
+              (throw (js/Error. (str (c/component-name t) " has " ::route "specified, but is in invalid format: " (pr-str route))))))
+          (log/warn (str "Route target " (c/component-name t) " has no path info specified."))))
+      []
+      router-targets)
+    ;; for each target, if it contains a router in its query
+    ;; then you call gather-routes on that nested router
+    ;; and insert them in nested position in the resulting reitit-routes data structure
+    ))
+
+(defsc ViewTask [this props]
+  {:route-segment ["view" :task-id]
+   :query         []
+   ::route        ["/:task-id" {:name :view-task :segment ["view" :task-id]}]})
+
+(def ui-view-task (c/factory ViewTask))
+
+(defsc EditTask [this props]
+  {:route-segment ["edit" :task-id]
+   :query         []
+   ::route        ["/:task-id/edit" {:name :edit-task :segment ["edit" :task-id]}]})
+
+(dr/defrouter TaskRouter [_ _] {:router-targets [EditTask ViewTask]})
+
+(defsc Target2 [_ _]
+  {::route        ["/signup" {:name :signup :segment ["signup"]}]
+   :route-segment ["target2"]})
+
+(defsc Target1 [_ _]
+  {::route        [^:alias ["/" {:name :root :segment ["tasks"]}]
+                   ["/tasks" {:name :tasks :segment ["tasks"]}]]
+   :route-segment ["tasks"]
+   :query         [{:task-router (c/get-query TaskRouter)}]})
+
+(dr/defrouter TopRouter [_ _] {:router-targets [Target1 Target1]})
+
+(comment
+  (gather-recursive TopRouter)
+  (r/router (gather-recursive TopRouter))
+  )
+
+;[
+; ["/"
+;  {:name :root, :segment ["tasks"]}
+;  [[":task-id/edit" {:name :edit-task, :segment ["edit" :task-id]}]
+;   [":task-id" {:name :view-task, :segment ["view" :task-id]}]]]
+;
+; ["/tasks"
+;  {:name :tasks, :segment ["tasks"]}
+;  [[":task-id/edit" {:name :edit-task, :segment ["edit" :task-id]}]
+;   [":task-id" {:name :view-task, :segment ["view" :task-id]}]]]
+;
+; ["/signup" {:name :signup, :segment ["signup"]}]
+;
+; ["/calendar"
+;  {:segment ["calendar"]}
+;  ["" {:name :calendar, :segment [#object[Function]]}]
+;  ["/:date" {:name :calendar-date, :segment [:date]}]]]
+
+;(map fr/gather-routes $)
+;(:query $)
+; (:component $)
+;(first $)
+
+
+;; todo
+;; for each target - get its query and find any nested routers, recursively.
+;; After that is working, then the next step is to
+;; support this process at runtime to register new subtrees of UI that register
+;; new nested routes, for example loading an edit subpage lazily
+;; but only used by small number of users, so don't need the routes to exist at first.
+
 (>defn gather-routes
   "Constructs a data structure of routes as used by reitit from a Fulcro Router
   assembles reitit routes from dv.fulcro-reitit/route data specified on each route target."
@@ -300,7 +464,8 @@
     (reduce
       (fn [acc t]
         (if-let [{::keys [route]} (c/component-options t)]
-          (let [f (first route)]
+          (let [f     (first route)
+                query (c/get-query t)]
             (log/info "route: " route)
             (cond
               (string? f) (conj acc route)
@@ -325,3 +490,4 @@
 (defn register-and-start-router! [app routes]
   (register-routes! app routes)
   (start-router! app))
+
