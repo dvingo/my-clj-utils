@@ -2,6 +2,7 @@
   (:require
     [cljs.spec.alpha :as s]
     [clojure.string :as str]
+    [cljs.pprint :refer [pprint]]
     [com.fulcrologic.fulcro.application :as app]
     [com.fulcrologic.fulcro.components :as c :refer [defsc]]
     [com.fulcrologic.fulcro.dom :as dom]
@@ -317,7 +318,6 @@
   (-> c c/get-query e/query->ast))
 
 (defn not-empty? [c] (boolean (seq c)))
-;; compose recursive routes
 
 (defn query-has-router?
   "Takes a component returns true if it joins at least one fulcro router in its query."
@@ -335,6 +335,7 @@
         children))))
 
 (defn get-routers-from-query
+  "Takes a component returns fulcro routers (defrouter) that are joined in the components query or nil if none."
   [c]
   (let [{:keys [children]} (comp->ast c)
         ret (into []
@@ -351,42 +352,83 @@
               children)]
     (not-empty ret)))
 
-;; also need to support multiple nested routers
-;;
+(defn concat-sub-routes
+  "
+  want to go from:
+  ['/tasks' {:name :tasks :segment ['tasks']}]
+
+  to this:
+  ['/tasks' {:segment ['tasks']} ['' {:name :tasks}]]
+  in order to get segment and names to work when expanded by reitit.
+  "
+  [parent children]
+  (log/info "concat sub routes parent: " (pr-str parent))
+  (log/info "concat sub routes children: " (pr-str children))
+  (let [[route-path {:keys [name] :as m}] parent
+        ;; if there is name and we are nesting, then need to reconfigure
+        out (if name
+              (let [parent [route-path (dissoc m :name)]]
+                (println "have name")
+                (vec (concat parent (reduce into [["" {:name name}]] children))))
+              (do
+                (println "no name")
+                (reduce into parent children)))]
+    (println "concat sub ret: ")
+    (pprint out)
+    out))
+
+(comment
+
+  (concat-sub-routes
+    ["/tasks" {:segment ["tasks"]} ["" {:name :tasks}]]
+    []
+    )
+
+  (gather-recursive TopRouter)
+  (reduce into
+    ["/:task-id/edit" {:name :edit-task :segment ["hi"]}]
+    [[["/nested/another" {:name :nested :segment ["nested"]}]]]))
+
 (defn gather-recursive
   [fulcro-router]
-  (let [q              (c/get-query fulcro-router)
-        ast            (e/query->ast q)
-        children       (:children ast)
-        router-targets (dr/get-targets fulcro-router)]
+  (let [router-targets (dr/get-targets fulcro-router)]
     (reduce
       (fn [acc t]
         (if-let [{::keys [route]} (c/component-options t)]
-          (let [f                  (first route)
-                has-nested-router? (query-has-router? t)
-                query              (c/get-query t)]
+          (let [f (first route)]
             (log/info "route: " route)
             (cond
               ;; todo assert that the route portion at each level is "flat" - the nesting is now from the components
               ;; rendering each other. If there is nesting in the data, that doesn't make sense so throw an error.
 
               ;; only one route
-              ;; todo support for single route with nesting
-              (string? f) (conj acc route)
+              (string? f)
+              (if-let [nested-routers (get-routers-from-query t)]
+                (let [sub-routes (map gather-recursive nested-routers)]
+                  (log/info "one: route" route)
+                  (log/info "one: sub-routes" sub-routes)
+                  (into acc [(concat-sub-routes route sub-routes)]))
+                (conj acc route))
 
               ;; many routes
               (vector f)
               (if-let [nested-routers (get-routers-from-query t)]
-                (let [sub-routes (map gather-recursive nested-routers)]
-                  (log/info "many: route" route)
-                  (log/info "many: sub-routes" sub-routes)
-                  (into acc
-                    (mapv
-                      (fn [r]
-                        (if (:alias (meta r))
-                          r
-                          (vec (apply concat r sub-routes))))
-                      route)))
+                (let [
+                      _                (log/info "has many")
+                      sub-routes       (map gather-recursive nested-routers)
+                      alias-routes     (filter #(:alias (meta %)) route)
+                      non-alias-routes (remove #(:alias (meta %)) route)
+                      true-route       (last non-alias-routes)
+                      w-nested         [(concat-sub-routes true-route sub-routes)]
+                      next-data        (vec (concat (into acc alias-routes) w-nested))]
+                  ;(log/info "many wnested: " w-nested)
+                  ;(log/info "next-data : " next-data)
+                  (when (> 1 (count non-alias-routes))
+                    (log/error (str "Component: " (c/component-name t) " has more than one route specified.")))
+                  ;(log/info "many: route" route)
+                  ;(log/info "many true route: " true-route)
+                  ;(log/info "many: sub-routes" sub-routes)
+                  next-data)
                 (into acc route))
               :else
               (throw (js/Error. (str (c/component-name t) " has " ::route "specified, but is in invalid format: " (pr-str route))))))
@@ -398,6 +440,22 @@
     ;; and insert them in nested position in the resulting reitit-routes data structure
     ))
 
+(comment
+  (gather-recursive TopRouter)
+
+  (vec (concat
+         ["/top" {:name :top}]
+         [["/nested" {:name :nested}]]))
+  ["/top" {:name :top}]
+  [["/nested" {:name :nested}]]
+
+  ;; works
+  (concat-sub-routes
+    ["/:task-id/edit" {:name :edit-task :segment ["edit" :task-id]}]
+    [[["/nested/another" {:name :nested :segment ["nested"]}]
+      ["/:task-id" {:name :view-task :segment ["view" :task-id]}]]])
+  )
+
 (defsc ViewTask [this props]
   {:route-segment ["view" :task-id]
    :query         []
@@ -405,15 +463,23 @@
 
 (def ui-view-task (c/factory ViewTask))
 
-(defsc EditTask [this props]
+(defsc Nested [this props]
+  {:query         []
+   :route-segment ["nested"]
+   ::route        ["/nested/another" {:name :nested :segment ["nested"]}]})
+
+(dr/defrouter Nested2 [_ _] {:router-targets [Nested]})
+
+(defsc EditTask [_ _]
   {:route-segment ["edit" :task-id]
-   :query         []
+   :query         [{:nested (c/get-query Nested2)}]
    ::route        ["/:task-id/edit" {:name :edit-task :segment ["edit" :task-id]}]})
 
 (dr/defrouter TaskRouter [_ _] {:router-targets [EditTask ViewTask]})
 
 (defsc Target2 [_ _]
   {::route        ["/signup" {:name :signup :segment ["signup"]}]
+   :query         []
    :route-segment ["target2"]})
 
 (defsc Target1 [_ _]
@@ -422,35 +488,15 @@
    :route-segment ["tasks"]
    :query         [{:task-router (c/get-query TaskRouter)}]})
 
-(dr/defrouter TopRouter [_ _] {:router-targets [Target1 Target1]})
+(dr/defrouter TopRouter [_ _] {:router-targets [Target1 Target2]})
 
 (comment
   (gather-recursive TopRouter)
-  (r/router (gather-recursive TopRouter))
+  ;;
+  (def r (r/router (gather-recursive TopRouter)))
+  (r/routes r)
+  (r/match-by-path r "/tasks/nested/another")
   )
-
-;[
-; ["/"
-;  {:name :root, :segment ["tasks"]}
-;  [[":task-id/edit" {:name :edit-task, :segment ["edit" :task-id]}]
-;   [":task-id" {:name :view-task, :segment ["view" :task-id]}]]]
-;
-; ["/tasks"
-;  {:name :tasks, :segment ["tasks"]}
-;  [[":task-id/edit" {:name :edit-task, :segment ["edit" :task-id]}]
-;   [":task-id" {:name :view-task, :segment ["view" :task-id]}]]]
-;
-; ["/signup" {:name :signup, :segment ["signup"]}]
-;
-; ["/calendar"
-;  {:segment ["calendar"]}
-;  ["" {:name :calendar, :segment [#object[Function]]}]
-;  ["/:date" {:name :calendar-date, :segment [:date]}]]]
-
-;(map fr/gather-routes $)
-;(:query $)
-; (:component $)
-;(first $)
 
 
 ;; todo
@@ -496,3 +542,40 @@
   (register-routes! app routes)
   (start-router! app))
 
+
+;[
+; ["/"
+;  {:name :root, :segment ["tasks"]}
+;  [[":task-id/edit" {:name :edit-task, :segment ["edit" :task-id]}]
+;   [":task-id" {:name :view-task, :segment ["view" :task-id]}]]]
+;
+; ["/tasks"
+;  {:name :tasks, :segment ["tasks"]}
+;  [[":task-id/edit" {:name :edit-task, :segment ["edit" :task-id]}]
+;   [":task-id" {:name :view-task, :segment ["view" :task-id]}]]]
+;
+; ["/signup" {:name :signup, :segment ["signup"]}]
+;
+; ["/calendar"
+;  {:segment ["calendar"]}
+;  ["" {:name :calendar, :segment [#object[Function]]}]
+;  ["/:date" {:name :calendar-date, :segment [:date]}]]]
+
+;(map fr/gather-routes $)
+;(:query $)
+; (:component $)
+;(first $)
+
+
+[["/" {:name :root, :segment ["tasks"]}]
+ ["/tasks" {:segment ["tasks"]}
+  ["" {:name :tasks}]
+
+  ["/:task-id/edit" {:segment ["edit" :task-id]}
+   ["" {:name :edit-task}]
+   ["/nested/another" {:name :nested, :segment ["nested"]}]]
+
+  ["/:task-id" {:name :view-task, :segment ["view" :task-id]}]]
+
+
+ ["/signup" {:name :signup, :segment ["signup"]}]]
