@@ -1,6 +1,5 @@
-;; todo
-{:deps   {:aliases [:dev]}
- :nrepl  {:port 9000}
+{:deps   {:aliases [:dev :test]}
+ :nrepl  {:port 9920}
  :builds {
           :test        {:target           :browser-test
                         :test-dir         "resources/public/js/test"

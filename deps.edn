@@ -11,7 +11,7 @@
            mount/mount                      {:mvn/version "0.1.16"}
 
            com.fulcrologic/fulcro           {:mvn/version "3.2.9"}
-           com.fulcrologic/guardrails       {:mvn/version "0.0.12"}
+           com.fulcrologic/guardrails       {:mvn/version "1.1.4"}
 
            org.clojure/core.async           {:mvn/version "1.2.603"}
 
@@ -40,9 +40,12 @@
            metosin/reitit                   {:mvn/version "0.5.2"}
            metosin/reitit-pedestal          {:mvn/version "0.5.2"}}
 
- :aliases {:clj-tests {:extra-paths ["src/test"]
+ :aliases {:test {:extra-paths ["test"]}
+
+           :clj-tests {:extra-paths ["src/test"]
                        :main-opts   ["-m" "kaocha.runner"]
                        :extra-deps  {lambdaisland/kaocha {:mvn/version "0.0-529"}}}
+
            :jar       {:extra-deps {seancorfield/depstar {:mvn/version "1.0.94"}}
                        :main-opts  ["-m" "hf.depstar.jar" "dv.clj-utils.jar"]}
 
@@ -61,7 +64,7 @@
 
                                      org.clojure/clojurescript           {:mvn/version "1.10.748"}
                                      org.clojure/test.check              {:mvn/version "1.0.0"}
-                                     thheller/shadow-cljs                {:mvn/version "2.8.106"}
+                                     thheller/shadow-cljs                {:mvn/version "2.11.21"}
                                      com.fulcrologic/semantic-ui-wrapper {:mvn/version "1.0.0"}
                                      ;; Formats spec explain.
                                      expound/expound                     {:mvn/version "0.8.4"}

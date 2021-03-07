@@ -376,9 +376,16 @@
   (let [router-targets (dr/get-targets fulcro-router)]
     (reduce
       (fn [acc t]
+        (log/info "target: " (c/component-name t))
         (if-let [{::keys [route]} (c/component-options t)]
           (let [f (first route)]
             (log/info "route: " route)
+            ;; we don't want to throw but we should do something sensible if your fulcro
+            ;; router has no reitit routes specified.
+            ;; it makes sense to not need a reitit route on all routes in fulcro router.
+            ;; but if there are none this should be an error - you shouldn't be initializing
+            ;; reitit if there are no routes
+            (when-not route (throw (js/Error. (str "No route on target " (c/component-name t)))))
             (cond
               ;; todo assert that the route portion at each level is "flat" - the nesting is now from the components
               ;; rendering each other. If there is nesting in the data, that doesn't make sense so throw an error.
@@ -403,8 +410,8 @@
                       true-route       (last non-alias-routes)
                       w-nested         [(concat-sub-routes true-route sub-routes)]
                       next-data        (vec (concat (into acc alias-routes) w-nested))]
-                  ;(log/info "many wnested: " w-nested)
-                  ;(log/info "next-data : " next-data)
+                  (log/info "non-alias routes: " non-alias-routes)
+                  (log/info "next-data : " next-data)
                   (when (> 1 (count non-alias-routes))
                     (log/error (str "Component: " (c/component-name t) " has more than one route specified.")))
                   ;(log/info "many: route" route)

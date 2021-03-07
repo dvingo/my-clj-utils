@@ -1,0 +1,25 @@
+{
+  "name": "dv.my-clj-utils",
+  "version": "1.0.0",
+  "description": "[![Clojars Project](https://img.shields.io/clojars/v/dv/clj-utils.svg)](https://clojars.org/dv/clj-utils)",
+  "directories": {
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dvingo/my-clj-utils.git"
+  },
+  "author": "Daniel Vingo",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/dvingo/my-clj-utils/issues"
+  },
+  "homepage": "https://github.com/dvingo/my-clj-utils",
+  "devDependencies": {
+    "shadow-cljs": "^2.11.21"
+  },
+  "dependencies": {
+    "highlight.js": "9.18.5",
+    "react-grid-layout": "0.16.6"
+  }
+}

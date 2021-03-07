@@ -1,7 +1,7 @@
 (ns dv.fulcro-reitit-test
   (:require
     [clojure.spec.alpha :as s]
-    [clojure.test :refer :all]
+    [clojure.test :refer [deftest is testing]]
     [com.fulcrologic.fulcro.application :as app]
     [com.fulcrologic.fulcro.components :as c :refer [defsc]]
     [com.fulcrologic.fulcro.routing.dynamic-routing :as dr]
@@ -10,18 +10,13 @@
     [reitit.core :as r]))
 
 (deftest construct-fulcro-segments-test
-  (let [out  (fr/construct-fulcro-segments {:template    "/calendar"
-                                            :data        {:segment ["calendar" (fn [_] (-> (js/Date.) .toISOString))] :name :calendar}
-                                            :result      nil
-                                            :path-params {}
-                                            :path        "/calendar"
-                                            })
-
-        out2 (fr/construct-fulcro-segments
-               (r/match-by-path router "/test"))]
-    (println "out: " out)
-    (println "out2: " out2)
-    ))
+  (let [out (fr/construct-fulcro-segments {:template    "/calendar"
+                                           :data        {:segment ["calendar" (fn [_] (-> (js/Date.) .toISOString (.split "T") first))]
+                                                         :name    :calendar}
+                                           :result      nil
+                                           :path-params {}
+                                           :path        "/calendar"})]
+    (is (= ["calendar" (-> (js/Date.) .toISOString (.split "T") first)] out))))
 
 (deftest test-init-router-state
   (let [routes
@@ -32,22 +27,7 @@
               ["/:date" {:name :calendar-date :segment [:date]}]]
              ["/signup" {:name :signup :segment ["signup"]}]]
         out (fr/initial-router-state routes)]
-    (s/valid? ::fr2/route-state out)
-    #_{:dv.fulcro-reitit/router {:router {; :reitit-router           #object[reitit.core.t_reitit$core133229],
-                                           :routes-by-name          {:root          {:name :root, :segment ["tasks"], :path "/"},
-                                                                     :tasks         {:name :tasks, :segment ["tasks"], :path "/tasks"},
-                                                                     :calendar      {:segment ["calendar"],
-                                                                                     :name    :calendar,
-                                                                                     :path    "/calendar"},
-                                                                     :calendar-date {:segment ["calendar" :date],
-                                                                                     :name    :calendar-date,
-                                                                                     :path    "/calendar/:date"},
-                                                                     :signup        {:name :signup, :segment ["signup"], :path "/signup"}},
-                                           :current-fulcro-route    [],
-                                           :redirect-loop-count     0,
-                                           :max-redirect-loop-count 10}}}
-    ))
-
+    (is (s/valid? ::fr/router-state out))))
 
 (comment
 
@@ -67,31 +47,31 @@
 (defsc ViewTask [this props]
   {:route-segment ["view" :task-id]
    :query         []
-   ::route        ["/:task-id" {:name :view-task :segment ["view" :task-id]}]})
+   ::fr/route     ["/:task-id" {:name :view-task :segment ["view" :task-id]}]})
 
 (def ui-view-task (c/factory ViewTask))
 
 (defsc Nested [this props]
   {:query         []
    :route-segment ["nested"]
-   ::route        ["/nested/another" {:name :nested :segment ["nested"]}]})
+   ::fr/route     ["/nested/another" {:name :nested :segment ["nested"]}]})
 
 (dr/defrouter Nested2 [_ _] {:router-targets [Nested]})
 
 (defsc EditTask [_ _]
   {:route-segment ["edit" :task-id]
    :query         [{:nested (c/get-query Nested2)}]
-   ::route        ["/:task-id/edit" {:name :edit-task :segment ["edit" :task-id]}]})
+   ::fr/route     ["/:task-id/edit" {:name :edit-task :segment ["edit" :task-id]}]})
 
 (dr/defrouter TaskRouter [_ _] {:router-targets [EditTask ViewTask]})
 
 (defsc Target2 [_ _]
-  {::route        ["/signup" {:name :signup :segment ["signup"]}]
+  {::fr/route     ["/signup" {:name :signup :segment ["signup"]}]
    :query         []
    :route-segment ["target2"]})
 
 (defsc Target1 [_ _]
-  {::route        [^:alias ["/" {:name :root :segment ["tasks"]}]
+  {::fr/route     [^:alias ["/" {:name :root :segment ["tasks"]}]
                    ["/tasks" {:name :tasks :segment ["tasks"]}]]
    :route-segment ["tasks"]
    :query         [{:task-router (c/get-query TaskRouter)}]})
@@ -108,5 +88,26 @@
 
 (deftest test-gather-recursive
   (let [out (fr/gather-recursive TopRouter)]
-    (println "out: " out)
-    out))
+    ;(println "LAST one out: " out)
+    (is (=
+          [["/" {:name :root, :segment ["tasks"]}]
+           ["/tasks"
+            {:segment ["tasks"]}
+            ["" {:name :tasks}]
+            ["/:task-id/edit"
+             {:segment ["edit" :task-id]}
+             ["" {:name :edit-task}]
+             ["/nested/another" {:name :nested, :segment ["nested"]}]]
+            ["/:task-id" {:name :view-task, :segment ["view" :task-id]}]]
+           ["/signup" {:name :signup, :segment ["signup"]}]]
+          out))))
+
+;; todo test when there are no reitit routes on a target fulcro router
+;; edge case you need to handle
+;;
+
+(comment
+  (dr/get-targets TopRouter)
+  (println "HI")
+  (fr/gather-recursive TopRouter)
+  (test-gather-recursive))
