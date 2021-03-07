@@ -441,33 +441,10 @@
     ))
 
 
-;; todo
-;; for each target - get its query and find any nested routers, recursively.
-;; After that is working, then the next step is to
+;; The next step is to
 ;; support this process at runtime to register new subtrees of UI that register
 ;; new nested routes, for example loading an edit subpage lazily
 ;; but only used by small number of users, so don't need the routes to exist at first.
-
-(>defn gather-routes
-  "Constructs a data structure of routes as used by reitit from a Fulcro Router
-  assembles reitit routes from dv.fulcro-reitit/route data specified on each route target."
-  [fulcro-router]
-  [dr/router? => vector?]
-  (let [{:keys [router-targets]} (c/component-options fulcro-router)]
-    (reduce
-      (fn [acc t]
-        (if-let [{::keys [route]} (c/component-options t)]
-          (let [f     (first route)
-                query (c/get-query t)]
-            (log/info "route: " route)
-            (cond
-              (string? f) (conj acc route)
-              (vector f) (into acc route)
-              :else
-              (throw (js/Error. (str (c/component-name t) " has " ::route "specified, but is in invalid format: " (pr-str route))))))
-          (log/warn (str "Route target " (c/component-name t) " has no path info specified."))))
-      []
-      router-targets)))
 
 (>defn register-fulcro-router!
   "Takes a fulcro app and a dr/defrouter component. Gathers reitit route data from the
