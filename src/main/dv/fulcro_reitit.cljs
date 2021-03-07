@@ -337,20 +337,14 @@
 (defn get-routers-from-query
   "Takes a component returns fulcro routers (defrouter) that are joined in the components query or nil if none."
   [c]
-  (let [{:keys [children]} (comp->ast c)
-        ret (into []
-              (comp
-                (filter
-                  (fn [c]
-                    (let [c2 (:component c)]
-                      ;; when there is a component and that component is a router
-                      (when c2
-                        (and
-                          (= (:type c) :join)
-                          (dr/router? c2))))))
-                (map :component))
-              children)]
-    (not-empty ret)))
+  (->> (comp->ast c) :children
+    (filter
+      (fn [c]
+        ;; when there is a component and that component is a router
+        (when-let [c2 (:component c)]
+          (and (= (:type c) :join) (dr/router? c2)))))
+    (mapv :component)
+    not-empty))
 
 (defn concat-sub-routes
   "
