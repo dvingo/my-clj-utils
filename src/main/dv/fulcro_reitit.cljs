@@ -319,21 +319,6 @@
 
 (defn not-empty? [c] (boolean (seq c)))
 
-(defn query-has-router?
-  "Takes a component returns true if it joins at least one fulcro router in its query."
-  [c]
-  (let [{:keys [children]} (comp->ast c)]
-    (not-empty?
-      (filter
-        (fn [c]
-          (let [c2 (:component c)]
-            ;; when there is a component and that component is a router
-            (when c2
-              (and
-                (= (:type c) :join)
-                (dr/router? c2)))))
-        children))))
-
 (defn get-routers-from-query
   "Takes a component returns fulcro routers (defrouter) that are joined in the components query or nil if none."
   [c]
