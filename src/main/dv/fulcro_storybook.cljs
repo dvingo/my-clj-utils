@@ -8,7 +8,7 @@
     [taoensso.timbre :as log]
     [reagent.dom :as rdom]
     [reagent.core :as r])
-  (:require-macros [dv.fulcro-storybook :refer [make-storym]]))
+  (:require-macros [dv.fulcro-storybook :refer [make-storym def-fulcro-class]]))
 
 (defn get-initial-state [comp params]
   (if (c/has-initial-app-state? comp)
