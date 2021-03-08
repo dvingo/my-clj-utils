@@ -10,7 +10,21 @@
         :initial-state {~dummy-prop nil}}
        ~@body)))
 
-(defmacro make-storym [& args]
+(defmacro make-storym-orig [story--name args]
+  (when-not (s/valid? ::args args)
+    (throw (ex-info "Invalid arguments to make-story: " {:args args})))
+  (let [{:keys [forms] :as opts} (s/conform ::args args)
+        ;_ (println "name: " (:name opts))
+        story-name (or (:name opts) (gensym "story"))
+        c-name (gensym "component")
+        fulcro-component (fulcro-component* c-name forms)]
+    `(do
+       ~fulcro-component
+       (def ~story-name (make-story ~c-name))
+       ;; this symbol should be fully qualified and 'munged'.
+       (goog/exportSymbol ~(str story-name) ~story-name))))
+
+(defmacro make-storym [story-name args]
   (when-not (s/valid? ::args args)
     (throw (ex-info "Invalid arguments to make-story: " {:args args})))
   (let [{:keys [forms] :as opts} (s/conform ::args args)
@@ -21,8 +35,8 @@
     `(do
       ~fulcro-component
       (def ~story-name (make-story ~c-name))
-      ;; this symbol should be fully qualified and 'munged'.
-      (goog/exportSymbol ~(str story-name) ~story-name))))
+      )))
+
 ;; the above export doesn't work because shadow-cljs doesn't add it to
 ;; the module.exports, but the symbol will be in the output.
 
@@ -33,22 +47,3 @@
         cls-name (or (:name opts) (gensym "story"))
         fulcro-component (fulcro-component* cls-name forms)]
     fulcro-component))
-
-(comment
-  (macroexpand-1 '(make-storym hello-story [:h1 "hello"]))
-
-  (macroexpand '(def '^:export hii true))
-  (macroexpand-1 '(make-storym [:h1 "hello"]))
-  (s/conform ::args '(name (tv/ui-hello {:arg "a arg"})))
-  (s/conform ::args '((tv/ui-hello {:arg "a arg"})))
-  )
-
-(comment
-  (def ^:export hi 0)
-  (binding [*print-meta* true]
-    (prn (var hi))
-    )
-  (def hi2)
-  (vary-meta hi2 (fn [m] (println "vary: " m) m)))
-;(vary-meta (var hi2) assoc :my-thing 5))
-;(meta #'hi)
