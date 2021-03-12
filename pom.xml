@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>dv</groupId>
   <artifactId>clj-utils</artifactId>
-  <version>2021-01-08</version>
+  <version>2021-03-11.0.0</version>
   <name>clj-utils</name>
   <description>My helpers and additions</description>
   <url>https://github.com/dvingo/my-clj-utils</url>
@@ -43,7 +43,7 @@
     <dependency>
       <groupId>com.fulcrologic</groupId>
       <artifactId>guardrails</artifactId>
-      <version>0.0.12</version>
+      <version>1.1.4</version>
     </dependency>
     <dependency>
       <groupId>io.pedestal</groupId>

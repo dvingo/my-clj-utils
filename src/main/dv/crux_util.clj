@@ -4,7 +4,10 @@
     [clojure.spec.alpha :as s]
     [com.fulcrologic.guardrails.core :refer [>defn >defn- >def | => ?]]
     [crux.api :as crux]
+    [crux.query]
+    [crux.node]
     [dv.fulcro-util-common :as fu]
+
     [taoensso.timbre :as log])
   (:import [java.util Date]
            [java.util UUID]
@@ -15,13 +18,11 @@
   [id]
   (or (keyword? id) (uuid? id)))
 
-(defn crux-node? [n] (instance? ICruxAPI n))
-(comment (crux-node? crux-node))
+(defn crux-node? [n]
+  (or (instance? ICruxAPI n) (instance? crux.node.CruxNode n)))
 
-;; show all attributes in the node
-(comment (crux/attribute-stats crux-node))
-
-(defn db? [x] (.isInstance ICruxDatasource x))
+(defn db? [x]
+  (or (instance? crux.query.QueryDatasource x) (.isInstance ICruxDatasource x)))
 
 (defn ->db [node-or-db]
   (cond
@@ -531,8 +532,8 @@
       (if (not (empty? subentities))
         (recur crux-node
           property
-          (vec (concat remaining subentities))              ;; new input
-          (into (mapv second subentities) output))          ;; new output
+          (vec (concat remaining subentities)) ;; new input
+          (into (mapv second subentities) output)) ;; new output
         (recur crux-node property remaining output)))))
 
 (>defn get-nested-ids
