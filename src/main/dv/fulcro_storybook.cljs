@@ -8,7 +8,8 @@
     [taoensso.timbre :as log]
     [reagent.dom :as rdom]
     [reagent.core :as r])
-  (:require-macros [dv.fulcro-storybook :refer [make-storym def-fulcro-class]]))
+  (:require-macros [dv.fulcro-storybook :refer
+                    [make-story2 make-storym def-fulcro-class]]))
 
 (defn get-initial-state [comp params]
   (if (c/has-initial-app-state? comp)
@@ -34,11 +35,12 @@
 
 (defn make-fulcro-app []
   (app/fulcro-app
-    {:render-root! rdom/render
+    {:render-root!      rdom/render
      :render-middleware (fn [this render] (r/as-element (render)))}))
 
-(defn make-story [cls]
-  (let [Root (make-root cls)
+(defn make-story
+  [cls]
+  (let [Root    (make-root cls)
         new-cls (r/create-class
                   {:component-did-mount
                    (fn [this]
@@ -48,3 +50,15 @@
                    :render
                    (fn [this] (dom/div {:ref (fn [r] (gobj/set this "el" r))}))})]
     #(react/createElement new-cls)))
+
+(defn make-mount-fulcro-app
+  [cls]
+  (let [Root (make-root cls)]
+    (r/create-class
+      {:component-did-mount
+       (fn [this]
+         (when-let [dom-node (gobj/get this "el")]
+           (log/info "Mounting fulcro story.")
+           (app/mount! (make-fulcro-app) Root dom-node {:initialize-state? true})))
+       :render
+       (fn [this] (dom/div {:ref (fn [r] (gobj/set this "el" r))}))})))

@@ -20,6 +20,7 @@
     [edn-query-language.core :as eql]
     [goog.events :as events]
     [goog.object :as gobj]
+    [reagent.core :as re]
     [reitit.frontend.easy :as rfe]
     [taoensso.timbre :as log])
   (:require-macros [dv.fulcro-util]))
@@ -113,6 +114,17 @@
     ([props & children]
      (if (seq children)
        (apply react/createElement el (clj->js props) (apply array children))
+       (if (react/isValidElement props)
+         (react/createElement el nil props)
+         (react/createElement el (clj->js props)))))))
+
+(defn react-factory-reagent [el]
+  (fn
+    ([] (react-factory el))
+    ([props & children]
+     (if (seq children)
+       (apply react/createElement el (clj->js props)
+         (apply array (map re/as-element children)))
        (if (react/isValidElement props)
          (react/createElement el nil props)
          (react/createElement el (clj->js props)))))))

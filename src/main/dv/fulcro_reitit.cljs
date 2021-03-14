@@ -27,7 +27,6 @@
         {:segment ["calendar"]}
         ["" {:name :calendar, :segment ["cal"]}]
         ["/:date" {:name :calendar-date, :segment [:date]}]]])
-
   )
 
 (defn reitit-router? [x] (satisfies? r/Router x))
@@ -139,6 +138,11 @@
    (if (router-registered? app)
      (get (router-state* app) p)
      (throw (js/Error. "No router registered on fulcro app.")))))
+
+(defn reitit-routes
+  "Returns the reitit routes currently registered as data via reitit.core/routes."
+  [app]
+  (-> app (router-state :reitit-router) (r/routes)))
 
 (defn route-segment
   [app name]
