@@ -40,8 +40,14 @@
          (defn ~story-name {:export true} []
            (react/createElement mount-fulcro-app#))))))
 
-;; the above export doesn't work because shadow-cljs doesn't add it to
-;; the module.exports, but the symbol will be in the output.
+(defmacro make-storym2 [story-name body]
+  (let [c-name           (gensym "component")
+        fulcro-component (fulcro-component2* c-name body)]
+    `(do
+       ~fulcro-component
+       (def ~(vary-meta story-name assoc :export true)
+         (make-story ~c-name)))))
+
 (defmacro test-it
   [nm v]
   `(def ~(vary-meta nm assoc :export true) ~v))

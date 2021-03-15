@@ -9,7 +9,9 @@
     [reagent.dom :as rdom]
     [reagent.core :as r])
   (:require-macros [dv.fulcro-storybook :refer
-                    [make-story2 make-storym def-fulcro-class]]))
+                    [make-storym
+                     make-storym2
+                     def-fulcro-class]]))
 
 (defn get-initial-state [comp params]
   (if (c/has-initial-app-state? comp)
