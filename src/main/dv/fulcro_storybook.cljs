@@ -11,6 +11,7 @@
   (:require-macros [dv.fulcro-storybook :refer
                     [make-storym
                      make-storym2
+                     export-default
                      def-fulcro-class]]))
 
 (defn get-initial-state [comp params]

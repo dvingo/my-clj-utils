@@ -1,5 +1,7 @@
 (ns dv.fulcro-storybook
-  (:require [clojure.spec.alpha :as s]))
+  (:require
+    [clojure.string :as str]
+    [clojure.spec.alpha :as s]))
 
 (s/def ::args (s/cat :name (s/? symbol?) :forms (s/+ any?)))
 
@@ -59,3 +61,9 @@
         cls-name         (or (:name opts) (gensym "story"))
         fulcro-component (fulcro-component* cls-name forms)]
     fulcro-component))
+
+(defmacro export-default
+  [opts]
+  (let [ns-name (str/replace (str (-> &env :ns :name)) "." "/")]
+    `(def ~(vary-meta 'default assoc :export true)
+       (cljs.core/clj->js (assoc ~opts :title ~ns-name)))))
