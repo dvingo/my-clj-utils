@@ -545,11 +545,12 @@
 
 (defstyled hover-hand :div {":hover" {:cursor "pointer"}})
 
-(>defn uuid
+;; with the specs, invoking this with a string would cause an infinite recursion loop.
+(defn uuid
   "Without args gives random UUID.
    With args, builds UUID based on input (useful in tests)."
-  ([] [=> uuid?] (random-uuid))
-  ([s] [string? => uuid?] (cljs.core/uuid s)))
+  ([] #_[=> uuid?] (random-uuid))
+  ([s] #_[string? => uuid?] (cljs.core/uuid s)))
 
 (defn deep-merge [x y]
   (cond
