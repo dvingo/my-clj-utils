@@ -4,8 +4,10 @@
     [clojure.spec.alpha :as s]
     [com.fulcrologic.fulcro.algorithms.merge :as merge]
     [com.fulcrologic.fulcro.components :as c :refer [defsc]]
+    [com.fulcrologic.fulcro.algorithms.denormalize :as fdn]
     [com.fulcrologic.guardrails.core :refer [>defn >def => | ?]]
-    [taoensso.timbre :as log])
+    [taoensso.timbre :as log]
+    [com.fulcrologic.fulcro.application :as app])
   #?(:clj
      (:import [java.util UUID])))
 
@@ -733,3 +735,10 @@
     cls
     (throw (error (str "Class component: " kw-or-sym
                     " is not in the registry, you probably need to require the namespace it lives in.")))))
+
+(defn component-tree [cls ident app]
+  (let [current-state (app/current-state app)]
+    (fdn/db->tree
+      (c/get-query cls current-state)
+      ident
+      current-state)))
