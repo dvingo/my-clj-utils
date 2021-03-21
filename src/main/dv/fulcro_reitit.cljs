@@ -64,6 +64,8 @@
 ;; leaving so it's easier to swap out how state is stored.
 (>def ::state-arg app/fulcro-app?)
 
+(>def ::comp-or-app (s/or :c c/component? :a app/fulcro-app?))
+
 (>defn router-path
   ([] [=> (s/tuple qualified-keyword? keyword?)]
    [::router :router])
@@ -127,17 +129,19 @@
 
 (>defn router-state
   ([app]
-   [app/fulcro-app? => ::router-state]
-   (if (router-registered? app)
-     (-> app
-       router-state*
-       (select-keys router-state-keys))
-     (throw (js/Error. "No router registered on fulcro app."))))
+   [::comp-or-app => ::router-state]
+   (let [app (c/any->app app)]
+     (if (router-registered? app)
+       (-> app
+         router-state*
+         (select-keys router-state-keys))
+       (throw (js/Error. "No router registered on fulcro app.")))))
   ([app p]
-   [app/fulcro-app? keyword? => any?]
-   (if (router-registered? app)
-     (get (router-state* app) p)
-     (throw (js/Error. "No router registered on fulcro app.")))))
+   [::comp-or-app keyword? => any?]
+   (let [app (c/any->app app)]
+     (if (router-registered? app)
+       (get (router-state* app) p)
+       (throw (js/Error. "No router registered on fulcro app."))))))
 
 (defn reitit-routes
   "Returns the reitit routes currently registered as data via reitit.core/routes."
@@ -267,8 +271,6 @@
 (comment (route=url? :goals {:date "2020-05-12"}))
 
 
-(>def ::comp-or-app (s/or :c c/component?
-                      :a app/fulcro-app?))
 (>defn change-route!
   "Invokes reitit-fe-easy/push-state unless the current URL is the route-key already."
   ([app route-key]
