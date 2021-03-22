@@ -179,6 +179,7 @@
 ;; todo support query-params also, by merging
 
 (>def ::fulcro-route-segment (s/or :string string? :kw simple-keyword?))
+
 (defn fulcro-segment-from-match
   [{:keys [path-params query-params] :as m}]
   (let [fulcro-segments (construct-fulcro-segments m)
@@ -186,9 +187,9 @@
         target-segment  (->> fulcro-segments
                           (mapv (fn [part]
                                   (when-not (s/valid? ::fulcro-route-segment part)
-                                    (fu/throw "\nRoute returned an invalid fulcro route segment: " (pr-str part)
-                                      "\n\nRoute is: " (:data m)
-                                      ".\n\nIt should be a keyword or string (or a function that returns one of these)."))
+                                    (throw (js/Error. (str "\nRoute returned an invalid fulcro route segment: " (pr-str part)
+                                                        "\n\nRoute is: " (:data m)
+                                                        ".\n\nIt should be a keyword or string (or a function that returns one of these).\n"))))
                                   (if (keyword? part)
                                     (or (part path-params) (part query-params))
                                     part))))]
