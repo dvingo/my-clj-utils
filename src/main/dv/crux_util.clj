@@ -52,8 +52,9 @@
   "Uses crux put transaction to add a vector of documents to a specified node."
   [crux-node docs]
   [crux-node? ::vec-of-docs => ::crux-tx-return]
+  (log/info "Transacting docs: " docs)
   (crux/submit-tx crux-node
-    (mapv #(vector :crux.tx/put (dissoc % :db/created-at :db/updated-at)) docs)))
+    (mapv #(vector :crux.tx/put %) docs)))
 
 (comment
   (put-all-async crux-node [{:crux.db/id :first-test :name :hi}]))
