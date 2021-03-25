@@ -2,7 +2,7 @@
   (:refer-clojure :exclude [uuid ident?])
   (:require
     ["react" :as react]
-    [cljs.core.async :refer [<! chan put! go go-loop]]
+    [cljs.core.async :refer [<! chan put! go go-loop sliding-buffer]]
     [clojure.spec.alpha :as s]
     [clojure.string :as str]
     [clojure.walk :as walk]
@@ -76,21 +76,33 @@
     (or (nil? min) (nil? max)) (to-int num-str)
     :else (Math/min max (Math/max min (to-int num-str)))))
 
+
 (defn listen
   "goog.events.listen to channel
    (listen js/global (.-MOUSEMOVE EventType))
+   (listen js/global (.-MOUSEMOVE EventType) (map (fn [e] {:x (.-:y})))
    https://google.github.io/closure-library/api/goog.events.EventType.html
+
+  (let [mouse-chan (listen js/window (.-MOUSEMOVE ^js EventType)
+                                      (async/chan (async/sliding-buffer 100)
+                                         (map (fn [e]
+                                              {:client-x (.-clientX e) :client-y (.-clientY e)
+                                               :screen-x (.-screenX e) :screen-y (.-screenY e)}))))]
+                           (async/go-loop []
+                             (async/<! (async/timeout 1e3))
+                             (let [x (async/<! mouse-chan)]
+                               (println \"Mouse move: \" x)
+                               (recur))))
   "
   ([el type]
    (let [out (chan)]
      (events/listen el type
        (fn [e] (put! out e)))
      out))
-  ([el type tx]
-   (let [out (chan 1 tx)]
-     (events/listen el type
-       (fn [e] (put! out e)))
-     out)))
+  ([el type out]
+   (events/listen el type
+     (fn [e] (put! out e)))
+   out))
 
 (defn remove-id* [state table-key id]
   (update state table-key #(dissoc % id)))
