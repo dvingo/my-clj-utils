@@ -412,7 +412,7 @@
                 (conj acc route))
 
               ;; many routes
-              (vector f)
+              (vector? f)
               (if-let [nested-routers (get-routers-from-query t)]
                 (let [
                       _                (log/info "has many")

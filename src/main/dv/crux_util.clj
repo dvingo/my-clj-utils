@@ -91,7 +91,7 @@
 
 (defn update-entity
   [crux-node entity-id field f]
-  (let [ent     (crux/entity (crux/db crux-node) entity-id)
+  (let [ent     (crux/entity (->db crux-node) entity-id)
         new-val (update ent field f)]
     (put crux-node new-val)))
 
@@ -442,9 +442,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn merge-entity
-  "Assumes entity exists are you're creating a new one (you need to pass crux.db/id if so
+  "Assumes entity exists or you're creating a new one (you need to pass crux.db/id if so
   or use merge-domain-entity).
-  Update an existing entity using the given map, deals with fetching the entity first."
+  Merges an existing entity with the given map, deals with fetching the entity first."
   ([crux-node entity-id new-attrs]
    {:pre [(or (vector? entity-id) (id? entity-id)) (map? new-attrs)]}
    (merge-entity crux-node entity-id new-attrs (Date.)))

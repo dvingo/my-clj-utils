@@ -21,7 +21,7 @@
         idkw (keyword nm "id")
         nmkw (keyword nm)]
     `(s/or
-       :id fu/ref?
+       :id uuid?
        ~(keyword (str nm "-ref")) (s/map-of ~idkw fu/id?)
        :pathom-join-map (s/map-of qualified-keyword? uuid?)
        ~nmkw ~spec)))
@@ -139,4 +139,3 @@
        :optional [:task/duration :task/scheduled-at]
 
        )))
-
