@@ -15,19 +15,25 @@ Contains some code related to:
 
 Build a deployable jar of this library:
 
-    $ clojure -A:jar
+  
+```bash
+make jar
+```
 
 Install it locally:
 
-    $ clojure -A:install
+```bash
+clojure -A:install
+```
 
 Deploy it to Clojars -- needs `CLOJARS_USERNAME` and `CLOJARS_PASSWORD` environment variables:
 
-    $ clojure -A:deploy
+```bash
+clojure -A:deploy
+```
 
 # Deploy notes for clojars
 
 1. Update the version of the maven package in pom.xml - and git commit it.
-2. Build the jar
-   make
+2. Build the jar via `make`
 3. CLOJARS_USERNAME='' CLOJARS_PASSWORD='deploy_token' clojure -A:deploy 
