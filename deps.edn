@@ -1,31 +1,20 @@
 {:paths   ["src/main"]
 
- :deps    {org.clojure/clojure              {:mvn/version "1.10.1"}
-           org.clojure/spec.alpha           {:mvn/version "0.2.187"}
-           com.taoensso/timbre              {:mvn/version "4.10.0"}
+ :deps    {com.taoensso/timbre              {:mvn/version "4.10.0"}
            com.taoensso/tufte               {:mvn/version "2.1.0"}
            com.wsscode/pathom               {:mvn/version "2.2.31"}
            com.wsscode/pathom-viz-connector {:mvn/version "1.0.3"}
 
            dv/cljs-emotion                  {:mvn/version "version-one"}
-           mount/mount                      {:mvn/version "0.1.16"}
-
-           com.fulcrologic/fulcro           {:mvn/version "3.2.9"}
-           com.fulcrologic/guardrails       {:mvn/version "1.1.4"}
 
            org.clojure/core.async           {:mvn/version "1.2.603"}
 
            ring/ring-core                   {:mvn/version "1.8.1"}
            ring/ring-defaults               {:mvn/version "0.3.2"}
 
-           ;; Crux
-           juxt/crux-core                   {:mvn/version "20.05-1.8.4-alpha"}
-           juxt/crux-rocksdb                {:mvn/version "20.05-1.8.4-alpha"}
-           juxt/crux-metrics                {:mvn/version "20.05-1.8.4-alpha"}
-           ;juxt/crux-http-server               {:mvn/version "20.05-1.8.4-alpha"}
-
            ;; Pull api parsing
            datascript/datascript            {:mvn/version "0.18.11"}
+           pro.juxt.crux/crux-core          {:mvn/version "1.18.1"}
 
            ;; Pedestal
            io.pedestal/pedestal.service     {:mvn/version "0.5.8"}

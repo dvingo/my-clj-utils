@@ -7,7 +7,6 @@
     [crux.query]
     [crux.node]
     [dv.fulcro-util-common :as fu]
-
     [taoensso.timbre :as log])
   (:import [java.util Date]
            [java.util UUID]
