@@ -18,10 +18,11 @@
            ring/ring-core                   {:mvn/version "1.8.1"}
            ring/ring-defaults               {:mvn/version "0.3.2"}
 
+           com.xtdb/xtdb-core               {:mvn/version "1.19.0-beta1"}
            ;; Crux
-           juxt/crux-core                   {:mvn/version "20.05-1.8.4-alpha"}
-           juxt/crux-rocksdb                {:mvn/version "20.05-1.8.4-alpha"}
-           juxt/crux-metrics                {:mvn/version "20.05-1.8.4-alpha"}
+           ;juxt/crux-core                   {:mvn/version "20.05-1.8.4-alpha"}
+           ;juxt/crux-rocksdb                {:mvn/version "20.05-1.8.4-alpha"}
+           ;juxt/crux-metrics                {:mvn/version "20.05-1.8.4-alpha"}
            ;juxt/crux-http-server               {:mvn/version "20.05-1.8.4-alpha"}
 
            ;; Pull api parsing
@@ -40,7 +41,7 @@
            metosin/reitit                   {:mvn/version "0.5.2"}
            metosin/reitit-pedestal          {:mvn/version "0.5.2"}}
 
- :aliases {:test {:extra-paths ["test"]}
+ :aliases {:test      {:extra-paths ["test"]}
 
            :clj-tests {:extra-paths ["src/test"]
                        :main-opts   ["-m" "kaocha.runner"]
