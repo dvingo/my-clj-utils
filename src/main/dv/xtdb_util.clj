@@ -80,11 +80,11 @@
   [qualified-keyword? inst? map? => map?]
   (assoc m :db/created-at now
            :db/updated-at (or (:db/created-at m) now)
-           :crux.db/id (get m id-field)))
+           :xt/id (get m id-field)))
 
 (defn insert-entity
-  "Invokes put on the passed in map after associng crux.db/id onto the map.
-  uses id-kw - keyword to get an id val for this entity to add crux.db/id to insert"
+  "Invokes put on the passed in map after associng xt/id onto the map.
+  uses id-kw - keyword to get an id val for this entity to add xt/id to insert"
   [crux-node id-kw e]
   (put crux-node (assoc-crux-id id-kw e)))
 
@@ -152,11 +152,11 @@
         (xt/entity db eid)))))
 
 (defn entity-id-with-prop
-  [crux-node eid] (some-> (entity-with-prop crux-node eid) :crux.db/id))
+  [crux-node eid] (some-> (entity-with-prop crux-node eid) :xt/id))
 
 ;(comment
 ;  (crux.api/entity (crux/db crux-node) "c28ca34d-bd4c-4036-8db9-8b1bc7ed2c7b")
-;  (put {:crux.db/id :test1 :val "1"})
+;  (put {:xt/id :test1 :val "1"})
 ;  (entity-with-prop crux-node [:val "1"])
 ;  (entity-id-for-prop (crux/db crux-node) [:val "1"])
 ;  (crux/entity (crux/db crux-node) :test1)
@@ -395,7 +395,7 @@
         entity-prev-value (entity crux-node entity-id)]
     (if (or (nil? entity-id) (nil? entity-prev-value))
       nil
-      (merge entity-prev-value new-attrs {:crux.db/id entity-id}))))
+      (merge entity-prev-value new-attrs {:xt/id entity-id}))))
 
 (comment
   (read-merge-entity crux-node :user/id {:user/id #uuid "2eb987f0-d580-4545-8b26-671ac8083260"}))
@@ -441,7 +441,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn merge-entity
-  "Assumes entity exists or you're creating a new one (you need to pass crux.db/id if so
+  "Assumes entity exists or you're creating a new one (you need to pass xt/id if so
   or use merge-domain-entity).
   Merges an existing entity with the given map, deals with fetching the entity first."
   ([crux-node entity-id new-attrs]
@@ -475,7 +475,7 @@
 (defn delete-all
   "Synchronously deletes all the passed ids (can be either idents or ids)."
   [crux-node ids]
-  (let [ids (mapv #(:crux.db/id (entity-with-prop crux-node %)) ids)]
+  (let [ids (mapv #(:xt/id (entity-with-prop crux-node %)) ids)]
     (log/info "Deleting entities with keys: " (pr-str ids))
     (xt/await-tx
       crux-node
@@ -499,9 +499,9 @@
 
 (defn delete
   "Key is either [:some-prop \"value\"]
-  or a value for crux.db/id"
+  or a value for xt/id"
   [crux-node key]
-  (let [key (:crux.db/id (entity-with-prop crux-node key))]
+  (let [key (:xt/id (entity-with-prop crux-node key))]
     (log/info "Deleting entity with key: " (pr-str key))
     (xt/await-tx
       crux-node
@@ -622,14 +622,14 @@
   assoces it at `new-attr`"
 
   [crux-node old-attr new-attr xf]
-  (->> (crux-select crux-node [:crux.db/id old-attr])
+  (->> (crux-select crux-node [:xt/id old-attr])
     (into []
       (map (comp
              #(dissoc % old-attr)
              ;; todo just call xf with the whole doc as an alternative
              #(assoc % new-attr (xf (old-attr %)))
              entity
-             :crux.db/id)))
+             :xt/id)))
     (put-all crux-node)))
 
 ;(comment (migrate-attr :habit/start-at :habit/starts-on tu/->date))
