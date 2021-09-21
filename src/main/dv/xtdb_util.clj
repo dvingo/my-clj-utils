@@ -9,7 +9,8 @@
     [taoensso.timbre :as log])
   (:import [java.util Date]
            [java.util UUID]
-           [xtdb.api IXtdbDatasource IXtdb]))
+           [xtdb.query QueryDatasource]
+           [xtdb.api DBProvider]))
 
 (defn id?
   "True if keyword or uuid"
@@ -17,13 +18,10 @@
   (or (keyword? id) (uuid? id)))
 
 (defn crux-node? [n]
-  (or (instance? IXtdbDatasource n) ;(instance? crux.node.CruxNode n)
-    ))
+   (instance? DBProvider n))
 
 (defn db? [x]
-  true
-  ;(or (instance? crux.query.QueryDatasource x) (.isInstance IXtdbDatasource x))
-  )
+  (or (instance? QueryDatasource x) (.isInstance QueryDatasource x)) )
 
 (defn ->db [node-or-db]
   (cond
