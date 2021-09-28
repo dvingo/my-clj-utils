@@ -22,6 +22,8 @@
         nmkw (keyword nm)]
     `(s/or
        :id uuid?
+       :ident ::fu/ident
+       :map map?
        ~(keyword (str nm "-ref")) (s/map-of ~idkw fu/id?)
        :pathom-join-map (s/map-of qualified-keyword? uuid?)
        ~nmkw ~spec)))
