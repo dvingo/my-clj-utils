@@ -43,14 +43,14 @@
   [xtdb-node doc]
   (xt/await-tx xtdb-node (put-async xtdb-node doc)))
 
-(s/def ::crux-doc (s/keys :req [:crux.db/id]))
-(s/def ::crux-tx-return (s/keys :req [:crux.tx/tx-id :crux.tx/tx-time]))
-(s/def ::vec-of-docs (s/coll-of ::crux-doc :type vector?))
+(s/def ::xtdb-doc (s/keys :req [:xt/id]))
+(s/def ::xtdb-tx-return (s/keys :req [:xtdb.api/tx-id  :xtdb.api/tx-time]))
+(s/def ::vec-of-docs (s/coll-of ::xtdb-doc :type vector?))
 
 (>defn put-all-async
   "Uses crux put transaction to add a vector of documents to a specified node."
   [xtdb-node docs]
-  [crux-node? ::vec-of-docs => ::crux-tx-return]
+  [crux-node? ::vec-of-docs => ::xtdb-tx-return]
   (log/info "Transacting docs: " docs)
   (xt/submit-tx xtdb-node
     (mapv #(vector ::xt/put %) docs)))
@@ -60,7 +60,7 @@
 
 (>defn put-all
   [crux-node docs]
-  [crux-node? ::vec-of-docs => ::crux-tx-return]
+  [crux-node? ::vec-of-docs => ::xtdb-tx-return]
   (xt/await-tx crux-node (put-all-async crux-node docs)))
 
 (comment
