@@ -18,10 +18,10 @@
   (or (keyword? id) (uuid? id)))
 
 (defn crux-node? [n]
-   (instance? DBProvider n))
+  (instance? DBProvider n))
 
 (defn db? [x]
-  (or (instance? QueryDatasource x) (.isInstance QueryDatasource x)) )
+  (or (instance? QueryDatasource x) (.isInstance QueryDatasource x)))
 
 (defn ->db [node-or-db]
   (cond
@@ -44,7 +44,7 @@
   (xt/await-tx xtdb-node (put-async xtdb-node doc)))
 
 (s/def ::xtdb-doc (s/keys :req [:xt/id]))
-(s/def ::xtdb-tx-return (s/keys :req [:xtdb.api/tx-id  :xtdb.api/tx-time]))
+(s/def ::xtdb-tx-return (s/keys :req [:xtdb.api/tx-id :xtdb.api/tx-time]))
 (s/def ::vec-of-docs (s/coll-of ::xtdb-doc :type vector?))
 
 (>defn put-all-async
@@ -179,12 +179,12 @@
 (defn get-doc-created-at [crux-node id]
   (with-open [history (xt/open-entity-history (->db crux-node) id
                         :asc {:with-docs? false})]
-    (-> (iterator-seq history) first :crux.tx/tx-time)))
+    (-> (iterator-seq history) first ::xt/tx-time)))
 
 (defn get-doc-updated-at [crux-node id]
   (with-open [history (xt/open-entity-history (->db crux-node) id
                         :desc {:with-docs? false})]
-    (-> (iterator-seq history) first :crux.tx/tx-time)))
+    (-> (iterator-seq history) first ::xt/tx-time)))
 
 (>defn get-timestamps
   "use history api to get
@@ -454,7 +454,7 @@
          _                 (log/info "merge prev valu: " entity-prev-value)
          new-val           (merge entity-prev-value new-attrs)]
      (log/info "merge entity new val: " new-val)
-     (xt/submit-tx crux-node [[:crux.tx/put new-val valid-time]]))))
+     (xt/submit-tx crux-node [[::xt/put new-val valid-time]]))))
 
 (comment
   (merge-entity (:task/id %) (assoc %)))
@@ -480,17 +480,17 @@
     (xt/await-tx
       crux-node
       (xt/submit-tx crux-node
-        (mapv (fn [i] [:crux.tx/delete (ensure-key i)]) ids)))))
+        (mapv (fn [i] [::xt/delete (ensure-key i)]) ids)))))
 
 (defn put-tx
-  "returns: [:crux.tx/put doc]"
-  ([doc] [:crux.tx/put doc])
-  ([doc valid-time] [:crux.tx/put doc valid-time]))
+  "returns: [:xtdb.api/put doc]"
+  ([doc] [::xt/put doc])
+  ([doc valid-time] [::xt/put doc valid-time]))
 
 (defn delete-tx
-  "returns: [:crux.tx/delete (ensure-key id)]"
+  "returns: [:xtdb.api/delete (ensure-key id)]"
   [id]
-  [:crux.tx/delete (ensure-key id)])
+  [::xt/delete (ensure-key id)])
 
 (defn submit-sync
   [crux-node tx]
@@ -505,7 +505,7 @@
     (log/info "Deleting entity with key: " (pr-str key))
     (xt/await-tx
       crux-node
-      (xt/submit-tx crux-node [[:crux.tx/delete (ensure-key key)]]))))
+      (xt/submit-tx crux-node [[::xt/delete (ensure-key key)]]))))
 
 (defn delete-entities-with-field
   "For all entities with the field `field` deletes them."
@@ -532,8 +532,8 @@
       (if (not (empty? subentities))
         (recur crux-node
           property
-          (vec (concat remaining subentities)) ;; new input
-          (into (mapv second subentities) output)) ;; new output
+          (vec (concat remaining subentities))              ;; new input
+          (into (mapv second subentities) output))          ;; new output
         (recur crux-node property remaining output)))))
 
 (>defn get-nested-ids
