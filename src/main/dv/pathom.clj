@@ -44,6 +44,8 @@
 (def -env (atom nil))
 (comment
   (keys @-env)
+  (-> @-env  :com.wsscode.pathom.core/entity deref)
+  (-> @-env keys sort)
   (@-env :target)
   (@-env :ring/request)
   (@-env ::p/entity-key)
@@ -105,13 +107,15 @@
   [{:keys [resolvers
            log-responses?
            enable-pathom-viz?
+           pathom-viz-parser-id
            env-additions
            trace?
            index-explorer?
            sensitive-keys
            handle-errors?]
     :or
-    {handle-errors? true}}]
+    {handle-errors? true
+     pathom-viz-parser-id ::parser}}]
   (when (and env-additions (not (fn? env-additions)))
     (throw (Exception. "build-parser: env-additions must be a function.")))
 
@@ -141,7 +145,7 @@
                                         trace? (conj p/trace-plugin))})
         parser         (cond->> parser
                          enable-pathom-viz?
-                         (pathom-viz/connect-parser {::pathom-viz/parser-id ::parser}))]
+                         (pathom-viz/connect-parser {::pathom-viz/parser-id pathom-viz-parser-id}))]
     (fn wrapped-parser [env tx]
       (when-not (vector? tx) (throw (Exception. "You must pass a vector for the transaction.")))
       ;; Add trace - pathom-viz already adds it so only add if that's not included.
