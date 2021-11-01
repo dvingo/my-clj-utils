@@ -5,11 +5,9 @@ this is a collection of code to help me get things done using clojure and clojur
 
 Contains some code related to:
 
-- crux
-- fulcro
+- CRUX (and the equivalent XTDB helpers)
+- fulcro3
   - devcards support
-    - To use this you have to include https://clojars.org/borkdude/dynaload in your dependencies. Including it in 
-    this library failed to work - you must include it in your own project.
 - pedestal http server setup with reitit, for use with fulcro
 - pathom parser setup
 

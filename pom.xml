@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>dv</groupId>
   <artifactId>clj-utils</artifactId>
-  <version>2021-04-11.0.0</version>
+  <version>2021-10-31.0.0</version>
   <name>clj-utils</name>
   <description>My helpers and additions</description>
   <url>https://github.com/dvingo/my-clj-utils</url>
@@ -71,11 +71,6 @@
       <version>0.3.2</version>
     </dependency>
     <dependency>
-      <groupId>juxt</groupId>
-      <artifactId>crux-metrics</artifactId>
-      <version>20.05-1.8.4-alpha</version>
-    </dependency>
-    <dependency>
       <groupId>dv</groupId>
       <artifactId>cljs-emotion</artifactId>
       <version>version-one</version>
@@ -86,9 +81,14 @@
       <version>3.2.9</version>
     </dependency>
     <dependency>
-      <groupId>juxt</groupId>
-      <artifactId>crux-rocksdb</artifactId>
-      <version>20.05-1.8.4-alpha</version>
+      <groupId>com.github.awkay</groupId>
+      <artifactId>workspaces</artifactId>
+      <version>1.0.3</version>
+    </dependency>
+    <dependency>
+      <groupId>borkdude</groupId>
+      <artifactId>dynaload</artifactId>
+      <version>0.2.2</version>
     </dependency>
     <dependency>
       <groupId>com.taoensso</groupId>
@@ -116,9 +116,9 @@
       <version>0.1.16</version>
     </dependency>
     <dependency>
-      <groupId>juxt</groupId>
-      <artifactId>crux-core</artifactId>
-      <version>20.05-1.8.4-alpha</version>
+      <groupId>com.xtdb</groupId>
+      <artifactId>xtdb-core</artifactId>
+      <version>1.19.0-beta1</version>
     </dependency>
     <dependency>
       <groupId>metosin</groupId>

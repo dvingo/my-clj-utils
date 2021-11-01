@@ -39,7 +39,11 @@
            funcool/httpurr                  {:mvn/version "2.0.0"}
 
            metosin/reitit                   {:mvn/version "0.5.2"}
-           metosin/reitit-pedestal          {:mvn/version "0.5.2"}}
+           metosin/reitit-pedestal          {:mvn/version "0.5.2"}
+
+           ;; used by fulcro3 devcards
+           borkdude/dynaload                {:mvn/version "0.2.2"}
+           com.github.awkay/workspaces      {:mvn/version "1.0.3"}}
 
  :aliases {:test      {:extra-paths ["test"]}
 
@@ -71,5 +75,4 @@
                                      expound/expound                     {:mvn/version "0.8.4"}
                                      fulcrologic/fulcro-spec             {:mvn/version "3.1.4"}
                                      binaryage/devtools                  {:mvn/version "0.9.10"}
-                                     com.github.awkay/workspaces         {:mvn/version "1.0.0-RC3"}
                                      org.clojure/tools.namespace         {:mvn/version "1.0.0"}}}}}
