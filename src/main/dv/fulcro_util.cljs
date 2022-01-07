@@ -2,6 +2,7 @@
   (:refer-clojure :exclude [uuid ident?])
   (:require
     ["react" :as react]
+    [borkdude.dynaload :refer [dynaload]]
     [cljs.core.async :refer [<! chan put! go go-loop sliding-buffer]]
     [clojure.spec.alpha :as s]
     [clojure.string :as str]
@@ -15,12 +16,9 @@
     [com.fulcrologic.fulcro.networking.mock-server-remote :refer [mock-http-server]]
     [com.fulcrologic.fulcro.ui-state-machines :as sm :refer [defstatemachine]]
     [com.fulcrologic.guardrails.core :refer [>defn => ?]]
-    [com.fulcrologic.semantic-ui.modules.transition.ui-transition :refer [ui-transition]]
-    [dv.cljs-emotion-reagent :refer [defstyled]]
     [edn-query-language.core :as eql]
     [goog.events :as events]
     [goog.object :as gobj]
-    [reagent.core :as re]
     [reitit.frontend.easy :as rfe]
     [taoensso.timbre :as log])
   (:require-macros [dv.fulcro-util]))
@@ -130,13 +128,14 @@
          (react/createElement el nil props)
          (react/createElement el (clj->js props)))))))
 
+(def r-as-element (dynaload 'reagent.core/as-element))
 (defn react-factory-reagent [el]
   (fn
     ([] (react-factory el))
     ([props & children]
      (if (seq children)
        (apply react/createElement el (clj->js props)
-         (apply array (map re/as-element children)))
+         (apply array (map @r-as-element children)))
        (if (react/isValidElement props)
          (react/createElement el nil props)
          (react/createElement el (clj->js props)))))))
@@ -416,17 +415,7 @@
   (map->vec {:a 5 :b 6})
   (map->vec nil))
 
-(defn notification [{:keys [ui/submit-state ui/server-message] :as props}]
-  (let [[success? failed?] (map #{submit-state} [:state/success :state/failed])
-        submit-done? (boolean (or success? failed?))]
-    (c/fragment
-      (ui-transition {:visible submit-done? :animation "scale" :duration 500}
-        (dom/div :.ui.floating.message {:classes [(when success? "positive")
-                                                  (when failed? "negative")]}
-          (dom/div :.content
-            (case submit-state :state/failed server-message
-                               :state/success "Successfuly saved"
-                               "")))))))
+
 (defn get-props-keys [c]
   (->> (c/get-query c)
     (eql/query->ast)
@@ -554,8 +543,6 @@
                     (dom/td (str k))
                     (dom/td (pr-str v))))
              m)))))))
-
-(defstyled hover-hand :div {":hover" {:cursor "pointer"}})
 
 ;; with the specs, invoking this with a string would cause an infinite recursion loop.
 (defn uuid

@@ -7,7 +7,6 @@
            com.wsscode/pathom               {:mvn/version "2.2.31"}
            com.wsscode/pathom-viz-connector {:mvn/version "1.0.3"}
 
-           dv/cljs-emotion                  {:mvn/version "version-one"}
            mount/mount                      {:mvn/version "0.1.16"}
 
            com.fulcrologic/fulcro           {:mvn/version "3.2.9"}
