@@ -66,7 +66,7 @@
 (comment
   (put-all crux-node [{:xt/id :first-test :name :hi}]))
 
-(defn assoc-crux-id
+(defn assoc-xtdb-id
   "kw field and map of data with a property for that kw to use as the crux.db/id"
   [field m]
   (assoc m :xt/id (get m field)))
@@ -86,7 +86,7 @@
   "Invokes put on the passed in map after associng xt/id onto the map.
   uses id-kw - keyword to get an id val for this entity to add xt/id to insert"
   [crux-node id-kw e]
-  (put crux-node (assoc-crux-id id-kw e)))
+  (put crux-node (assoc-xtdb-id id-kw e)))
 
 (defn update-entity
   [crux-node entity-id field f]
@@ -430,7 +430,7 @@
        ~(str "Make a " nm " to insert into crux")
        [~props]
        [map? ~'=> ~spec]
-       (assoc-crux-id ~id-kw (~make-fn ~props)))))
+       (assoc-xtdb-id ~id-kw (~make-fn ~props)))))
 
 (comment
   (macroexpand-1 '(gen-make-db-entity make-db-task ::task))
@@ -464,7 +464,7 @@
   [crux-node id-kw m]
   (let [id (id-kw m)]
     (if id
-      (merge-entity crux-node id (assoc-crux-id id-kw m))
+      (merge-entity crux-node id (assoc-xtdb-id id-kw m))
       (throw (Exception. (str "Missing id field: " id-kw " in map: " m))))))
 
 (>defn ensure-key

@@ -2,7 +2,6 @@
   (:require
     [cljs.spec.alpha :as s]
     [clojure.string :as str]
-    [cljs.pprint :refer [pprint]]
     [com.fulcrologic.fulcro.application :as app]
     [com.fulcrologic.fulcro.components :as c :refer [defsc]]
     [com.fulcrologic.fulcro.dom :as dom]
@@ -365,7 +364,6 @@
                 (println "no name")
                 (reduce into parent children)))]
     (println "concat sub ret: ")
-    (pprint out)
     out))
 
 (comment
