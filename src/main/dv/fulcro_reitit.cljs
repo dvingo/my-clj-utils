@@ -235,10 +235,12 @@
         (handle-redirect app route params)
 
         ;; Path matched
-        (let [fulcro-segment (fulcro-segment-from-match m)]
+        (let [fulcro-segment (fulcro-segment-from-match m)
+              {:keys [parameters]} m
+              parameters     (merge (:path parameters) (:query parameters))]
           (log/info "Invoking Fulcro change route with " fulcro-segment)
           (set-router-state! app :current-fulcro-route fulcro-segment)
-          (dr/change-route! app fulcro-segment)))
+          (dr/change-route! app fulcro-segment parameters)))
       ;; unknown page, redirect to root
       (do
         (log/info "No fulcro route matched the current URL, changing to the default route.")
@@ -298,19 +300,22 @@
        (log/info "push state : " name " params: " params)
        (rfe/push-state name params)))))
 
-(>defn start-router!
-  "Starts reitit router listening to URL changes."
-  [app]
-  [app/fulcro-app? => any?]
+(defn start-router!* [app]
   (let [reitit-router (router-state app :reitit-router)]
     (log/info "Starting router: " reitit-router)
     (rfe/start! reitit-router (partial on-match app) {:use-fragment false})))
 
+(>defn start-router!
+  "Starts reitit router listening to URL changes."
+  [app]
+  [(s/or :app app/fulcro-app? :var var?) => any?]
+  (log/info "var? " (pr-str (var? app)))
+  (if (var? app) (js/setTimeout #(start-router!* @app))
+                 (start-router!* app)))
+
 ;; todo support merging in the new routes instead of overwriting.
 
-(defn register-routes!
-  "swap!s in state for the router into the fulcro runtime-atom."
-  [app routes]
+(defn save-router-state*! [app routes]
   (let [{::app/keys [runtime-atom]} app]
     (swap! runtime-atom
       (fn [s]
@@ -319,6 +324,13 @@
             (assoc-router-state s
               (fu/deep-merge (initial-router-state routes) curr-route-state)))
           (assoc-router-state s (initial-router-state routes)))))))
+
+(defn register-routes!
+  "swap!s in state for the router into the fulcro runtime-atom."
+  [app routes]
+  (if (var? app)
+    (js/setTimeout #(save-router-state*! @app routes))
+    (save-router-state*! app routes)))
 
 (>defn route-target?
   [c]
@@ -446,7 +458,7 @@
   "Takes a fulcro app and a dr/defrouter component. Gathers reitit route data from the
   route-targets on the fulcro router and registers a reitit router within the fulcro application."
   [app fulcro-router]
-  [app/fulcro-app? dr/router? => any?]
+  [(s/or :app app/fulcro-app? :var var?) dr/router? => any?]
   (let [routes (gather-recursive fulcro-router)]
     (log/info "Registering reitit routes: " routes)
     (register-routes! app routes)))
@@ -454,3 +466,16 @@
 (defn register-and-start-router! [app routes]
   (register-routes! app routes)
   (start-router! app))
+
+;; todo
+;; there are some fulcro applications which will set the fulcro app asynchronously, which prevents registering the
+;; routers on load of the script.One idea is to have a register-fulcro-router-delay
+;; or similar name that will enqueue the router and then later you can have something like run-register-enqueued-routers!
+;; or even just do it as part of start-router and then have a start-router! variant like start-router-async!
+
+
+;; as a nice behavior to prevent forgetting one more thing to do when adding a route:
+;; have this library set the :route-segment component option - or throw if it is not present on a route.
+;; this is a source of bugs
+
+;; support passing {:compile coercion/compile-request-coercers} when registering routes
