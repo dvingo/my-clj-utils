@@ -280,7 +280,6 @@
 
 (comment (route=url? :goals {:date "2020-05-12"}))
 
-
 (>defn change-route!
   "Invokes reitit-fe-easy/push-state unless the current URL is the route-key already."
   ([app route-key]
@@ -293,8 +292,8 @@
          routes-by-name (router-state app :routes-by-name)
          {:keys [name] :as route} (get routes-by-name route-key)]
      (when-not (route=url? app route-key params)
-       (when-not route (throw (js/Error. (str "Unknown reitit route for key: " route-key "\n"
-                                           "Your routes are:\n" (reduce (fn [a r] (str a (pr-str r) "\n")) "" (reitit-routes app))))))
+       (when-not route (throw (js/Error. (str "Unknown reitit route for key: " route-key "\n\n"
+                                           "Your routes are:\n\n" (reduce #(str %1 (pr-str %2) "\n") "" (reitit-routes app))))))
        (log/info "Changing route to : " route)
        (log/info "push state : " name " params: " params)
        (rfe/push-state name params)))))
