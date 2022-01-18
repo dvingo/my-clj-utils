@@ -10,6 +10,7 @@
     [dv.fulcro-util-common :as fu]
     [edn-query-language.core :as e]
     [goog.object :as g]
+    [reitit.coercion :as coercion]
     [reitit.core :as r]
     [reitit.frontend :as rf]
     [reitit.frontend.easy :as rfe]
@@ -97,15 +98,17 @@
       (assoc-in [::router :router :redirect-loop-count] redirect-loop-count)
       (assoc-in [::router :router :max-redirect-loop-count] max-redirect-loop-count))))
 
-(defn initial-router-state
-  "Takes a map - your app state atom's value - assoc-in router state needed to work."
-  [routes]
-  (let [reitit-router (rf/router routes)]
-    {:reitit-router           reitit-router
-     :routes-by-name          (make-routes-by-name reitit-router)
-     :current-fulcro-route    []
-     :redirect-loop-count     0
-     :max-redirect-loop-count *max-redirect-loop-count*}))
+(defn init-router-and-state
+  "Returns a map representing the state of the router.
+   Constructs a new reitit router from the supplied routes and initializing state management values."
+  ([routes] (init-router-and-state routes {}))
+  ([routes opts]
+   (let [reitit-router (rf/router routes opts)]
+     {:reitit-router           reitit-router
+      :routes-by-name          (make-routes-by-name reitit-router)
+      :current-fulcro-route    []
+      :redirect-loop-count     0
+      :max-redirect-loop-count *max-redirect-loop-count*})))
 
 (comment
   (let [routes
@@ -282,13 +285,7 @@
   "Invokes reitit-fe-easy/push-state unless the current URL is the route-key already."
   ([app route-key]
    [::comp-or-app keyword? => any?]
-   (let [app            (c/any->app app)
-         router         (router-state app)
-         routes-by-name (:routes-by-name router)
-         {:keys [name] :as route} (get routes-by-name route-key)]
-     (when-not (route=url? app route-key {})
-       (log/info "Changing route to: " route)
-       (rfe/push-state name))))
+   (change-route! app route-key {}))
 
   ([app route-key params]
    [::comp-or-app keyword? map? => any?]
@@ -296,6 +293,8 @@
          routes-by-name (router-state app :routes-by-name)
          {:keys [name] :as route} (get routes-by-name route-key)]
      (when-not (route=url? app route-key params)
+       (when-not route (throw (js/Error. (str "Unknown reitit route for key: " route-key "\n"
+                                           "Your routes are:\n" (reduce (fn [a r] (str a (pr-str r) "\n")) "" (reitit-routes app))))))
        (log/info "Changing route to : " route)
        (log/info "push state : " name " params: " params)
        (rfe/push-state name params)))))
@@ -315,22 +314,24 @@
 
 ;; todo support merging in the new routes instead of overwriting.
 
-(defn save-router-state*! [app routes]
+(defn save-router-state*! [app routes opts]
   (let [{::app/keys [runtime-atom]} app]
     (swap! runtime-atom
       (fn [s]
         (if (router-registered? app)
           (let [curr-route-state (router-state app)]
             (assoc-router-state s
-              (fu/deep-merge (initial-router-state routes) curr-route-state)))
-          (assoc-router-state s (initial-router-state routes)))))))
+              (fu/deep-merge (init-router-and-state routes opts) curr-route-state)))
+          (assoc-router-state s (init-router-and-state routes opts)))))))
 
 (defn register-routes!
   "swap!s in state for the router into the fulcro runtime-atom."
-  [app routes]
-  (if (var? app)
-    (js/setTimeout #(save-router-state*! @app routes))
-    (save-router-state*! app routes)))
+  ([app routes]
+   (register-routes! app routes {:compile coercion/compile-request-coercers}))
+  ([app routes opts]
+   (if (var? app)
+     (js/setTimeout #(save-router-state*! @app routes opts))
+     (save-router-state*! app routes opts))))
 
 (>defn route-target?
   [c]
@@ -399,27 +400,33 @@
     (reduce
       (fn [acc t]
         (log/info "target: " (c/component-name t))
-        (if-let [{::keys [route]} (c/component-options t)]
-          (let [f (first route)]
+        (if-let [{::keys [route] :keys [route-segment]} (c/component-options t)]
+          (let [[f route-params] route]
+            (when-not route-segment
+              (throw (js/Error. (str "Missing fulcro component option :route-segment attribute on target " (c/component-name t)))))
             (log/info "route: " route)
             ;; we don't want to throw but we should do something sensible if your fulcro
             ;; router has no reitit routes specified.
             ;; it makes sense to not need a reitit route on all routes in fulcro router.
             ;; but if there are none this should be an error - you shouldn't be initializing
             ;; reitit if there are no routes
-            (when-not route (throw (js/Error. (str "No route on target " (c/component-name t)))))
+            (when-not route (throw (js/Error. (str "No reitit route on target " (c/component-name t) "\n\nAdd the attribute " (pr-str ::route) " to your component.\n"
+                                                "Do not forget the fulcro :route-segment as well. :)\n"))))
             (cond
               ;; todo assert that the route portion at each level is "flat" - the nesting is now from the components
               ;; rendering each other. If there is nesting in the data, that doesn't make sense so throw an error.
 
               ;; only one route
               (string? f)
-              (if-let [nested-routers (get-routers-from-query t)]
-                (let [sub-routes (map gather-recursive nested-routers)]
-                  ;(log/info "one: route" route)
-                  ;(log/info "one: sub-routes" sub-routes)
-                  (into acc [(concat-sub-routes route sub-routes)]))
-                (conj acc route))
+              (do
+                (when-not (contains? route-params :segment) (throw (js/Error. (str "Missing :segment attribute in reitit data map for target " (c/component-name t)))))
+                (when-not (contains? route-params :name) (throw (js/Error. (str "Missing :name attribute in reitit data map for target " (c/component-name t)))))
+                (if-let [nested-routers (get-routers-from-query t)]
+                  (let [sub-routes (map gather-recursive nested-routers)]
+                    ;(log/info "one: route" route)
+                    ;(log/info "one: sub-routes" sub-routes)
+                    (into acc [(concat-sub-routes route sub-routes)]))
+                  (conj acc route)))
 
               ;; many routes
               (vector? f)

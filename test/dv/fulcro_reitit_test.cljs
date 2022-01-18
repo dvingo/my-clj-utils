@@ -26,7 +26,7 @@
               ["" {:name :calendar :segment [(fn [_] "202020")]}]
               ["/:date" {:name :calendar-date :segment [:date]}]]
              ["/signup" {:name :signup :segment ["signup"]}]]
-        out (fr/initial-router-state routes)]
+        out (fr/init-router-and-state routes)]
     (is (s/valid? ::fr/router-state out))))
 
 (comment
