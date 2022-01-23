@@ -217,7 +217,7 @@
   )
 
 (>defn domain-entity
-  "Invokes crux/entity and adds db/created-at and db/updated-at to the return value.
+  "Invokes xtdb.api/entity and adds db/created-at and db/updated-at to the return value.
   Id can be an ident or an id."
   [crux-node id]
   [crux-node? (s/or :ref fu/ref? :uuid fu/id?) => (? map?)]

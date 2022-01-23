@@ -4,6 +4,7 @@
     [clojure.string :as str]
     [com.fulcrologic.fulcro.application :as app]
     [com.fulcrologic.fulcro.components :as c :refer [defsc]]
+    [com.fulcrologic.fulcro.mutations :as m :refer [defmutation]]
     [com.fulcrologic.fulcro.dom :as dom]
     [com.fulcrologic.fulcro.routing.dynamic-routing :as dr]
     [com.fulcrologic.guardrails.core :refer [>defn => | ? >def]]
@@ -198,12 +199,21 @@
     (log/info "Target segment: " target-segment)
     target-segment))
 
+
+(defmutation set-current-route-name-in-client-db [{:keys [route-name]}]
+  (action [{:keys [state]}]
+    (swap! state assoc ::current-route-name route-name)))
+
+(defn set-current-route-name-in-client-db! [app route-name]
+  (c/transact! app [(set-current-route-name-in-client-db {:route-name route-name})]))
+
 (defn set-router-state! [app prop v]
   (swap! (::app/runtime-atom app)
     (fn [s] (assoc-in s (router-path prop) v))))
 
 (defn update-router-state!
   [app prop f]
+  (set-current-route-name-in-client-db! app :current)
   (swap! (::app/runtime-atom app)
     (fn [s] (update-in s (router-path prop) f))))
 
@@ -225,14 +235,13 @@
 ;; not sure if nil is passed only if the current url doesn't match any
 ;; of your routes. Try it out.
 (defn on-match
-  ""
+  "Called by reitit when a URL is navigated to.
+  Handles mutating state to synchronous with a fulcro application"
   [app m]
   (log/info "on-match called with: " m)
   (let [{:keys [reitit-router]} (router-state app)
         {:keys [path] :as m} (or m {:path (g/get js/location "pathname")})
         has-match? (rf/match-by-path reitit-router path)]
-
-    (log/info "router, match: " m)
     (if has-match?
       (if-let [{:keys [route params]} (get-in m [:data :redirect-to])]
         (handle-redirect app route params)
@@ -241,15 +250,19 @@
         (let [fulcro-segment (fulcro-segment-from-match m)
               {:keys [parameters]} m
               parameters     (merge (:path parameters) (:query parameters))]
+          (log/info "current fulcro route: " (dr/current-route app))
           (log/info "Invoking Fulcro change route with " fulcro-segment)
           (set-router-state! app :current-fulcro-route fulcro-segment)
+          (set-current-route-name-in-client-db! app (-> m :data :name))
           (dr/change-route! app fulcro-segment parameters)))
       ;; unknown page, redirect to root
       (do
         (log/info "No fulcro route matched the current URL, changing to the default route.")
         (js/setTimeout #(rfe/push-state :default))))))
 
-(defn current-route [this]
+(defn current-route
+  "Takes a component instance, not a fulcro app."
+  [this]
   (some-> (dr/current-route this this) first keyword))
 
 (defn current-app-route [app]
