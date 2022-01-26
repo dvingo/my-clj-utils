@@ -20,6 +20,9 @@
 (defn crux-node? [n]
   (instance? DBProvider n))
 
+(defn xtdb-node? [n]
+  (instance? DBProvider n))
+
 (defn db? [x]
   (or (instance? QueryDatasource x) (.isInstance QueryDatasource x)))
 

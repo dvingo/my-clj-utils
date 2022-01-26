@@ -181,7 +181,7 @@
 
 ;; todo support query-params also, by merging
 
-(>def ::fulcro-route-segment (s/or :string string? :kw simple-keyword?))
+(s/def ::fulcro-route-segment (s/or :string string? :kw simple-keyword?))
 
 (defn fulcro-segment-from-match
   [{:keys [path-params query-params] :as m}]
@@ -198,7 +198,6 @@
                                     part))))]
     (log/info "Target segment: " target-segment)
     target-segment))
-
 
 (defmutation set-current-route-name-in-client-db [{:keys [route-name]}]
   (action [{:keys [state]}]
