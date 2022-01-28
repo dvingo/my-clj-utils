@@ -199,12 +199,12 @@
     (log/info "Target segment: " target-segment)
     target-segment))
 
-(defmutation set-current-route-name-in-client-db [{:keys [route-name]}]
+(defmutation set-current-route-in-client-db [{:keys [current-route]}]
   (action [{:keys [state]}]
-    (swap! state assoc ::current-route-name route-name)))
+    (swap! state assoc ::current-route current-route)))
 
-(defn set-current-route-name-in-client-db! [app route-name]
-  (c/transact! app [(set-current-route-name-in-client-db {:route-name route-name})]))
+(defn set-current-route-in-client-db! [app current-route]
+  (c/transact! app [(set-current-route-in-client-db {:current-route current-route})]))
 
 (defn set-router-state! [app prop v]
   (swap! (::app/runtime-atom app)
@@ -212,7 +212,6 @@
 
 (defn update-router-state!
   [app prop f]
-  (set-current-route-name-in-client-db! app :current)
   (swap! (::app/runtime-atom app)
     (fn [s] (update-in s (router-path prop) f))))
 
@@ -229,6 +228,10 @@
             (update-router-state! app :redirect-loop-count inc)
             (js/setTimeout #(rfe/replace-state route params)))))))
 
+(defn current-url-path+query []
+  (when (exists? js/location)
+    (str (.-pathname js/location) (.-search js/location))))
+
 ;; Looks like the first match comes in as nil when init! is called.
 ;; read from the current url in that case.
 ;; not sure if nil is passed only if the current url doesn't match any
@@ -239,7 +242,7 @@
   [app m]
   (log/info "on-match called with: " m)
   (let [{:keys [reitit-router]} (router-state app)
-        {:keys [path] :as m} (or m {:path (g/get js/location "pathname")})
+        {:keys [path] :as m} (or m {:path (current-url-path+query)})
         has-match? (rf/match-by-path reitit-router path)]
     (if has-match?
       (if-let [{:keys [route params]} (get-in m [:data :redirect-to])]
@@ -249,10 +252,10 @@
         (let [fulcro-segment (fulcro-segment-from-match m)
               {:keys [parameters]} m
               parameters     (merge (:path parameters) (:query parameters))]
-          (log/info "current fulcro route: " (dr/current-route app))
+          (log/info "Current Fulcro route: " (dr/current-route app))
           (log/info "Invoking Fulcro change route with " fulcro-segment)
           (set-router-state! app :current-fulcro-route fulcro-segment)
-          (set-current-route-name-in-client-db! app (-> m :data :name))
+          (set-current-route-in-client-db! app m)
           (dr/change-route! app fulcro-segment parameters)))
       ;; unknown page, redirect to root
       (do
@@ -268,7 +271,7 @@
   (dr/current-route app))
 
 (defn current-route-from-url [app]
-  (rf/match-by-path (router-state app :reitit-router) (g/get js/location "pathname")))
+  (rf/match-by-path (router-state app :reitit-router) (current-url-path+query)))
 
 (defn current-route-name
   "Returns the keyword name of the current route as determined by the URL path."
@@ -297,9 +300,11 @@
   ([app route-key]
    [::comp-or-app keyword? => any?]
    (change-route! app route-key {}))
-
   ([app route-key params]
    [::comp-or-app keyword? map? => any?]
+   (change-route! app route-key params {}))
+  ([app route-key params query]
+   [::comp-or-app keyword? map? map? => any?]
    (let [app            (c/any->app app)
          routes-by-name (router-state app :routes-by-name)
          {:keys [name] :as route} (get routes-by-name route-key)]
@@ -308,7 +313,7 @@
                                            "Your routes are:\n\n" (reduce #(str %1 (pr-str %2) "\n") "" (reitit-routes app))))))
        (log/info "Changing route to : " route)
        (log/info "push state : " name " params: " params)
-       (rfe/push-state name params)))))
+       (rfe/push-state name params query)))))
 
 (defn start-router!* [app]
   (let [reitit-router (router-state app :reitit-router)]
@@ -376,8 +381,8 @@
   in order to get segment and names to work when expanded by reitit.
   "
   [parent children]
-  (log/info "concat sub routes parent: " (pr-str parent))
-  (log/info "concat sub routes children: " (pr-str children))
+  (log/trace "concat sub routes parent: " (pr-str parent))
+  (log/trace "concat sub routes children: " (pr-str children))
   (let [[route-path {:keys [name] :as m}] parent
         ;; if there is name and we are nesting, then need to reconfigure
         out (if name
@@ -410,12 +415,12 @@
   (let [router-targets (dr/get-targets fulcro-router)]
     (reduce
       (fn [acc t]
-        (log/info "target: " (c/component-name t))
+        (log/trace "target: " (c/component-name t))
         (if-let [{::keys [route] :keys [route-segment]} (c/component-options t)]
           (let [[f route-params] route]
             (when-not route-segment
               (throw (js/Error. (str "Missing fulcro component option :route-segment attribute on target " (c/component-name t)))))
-            (log/info "route: " route)
+            (log/trace "route: " route)
             ;; we don't want to throw but we should do something sensible if your fulcro
             ;; router has no reitit routes specified.
             ;; it makes sense to not need a reitit route on all routes in fulcro router.
@@ -434,8 +439,8 @@
                 (when-not (contains? route-params :name) (throw (js/Error. (str "Missing :name attribute in reitit data map for target " (c/component-name t)))))
                 (if-let [nested-routers (get-routers-from-query t)]
                   (let [sub-routes (map gather-recursive nested-routers)]
-                    ;(log/info "one: route" route)
-                    ;(log/info "one: sub-routes" sub-routes)
+                    ;(log/trace "one: route" route)
+                    ;(log/trace "one: sub-routes" sub-routes)
                     (into acc [(concat-sub-routes route sub-routes)]))
                   (conj acc route)))
 
@@ -443,20 +448,20 @@
               (vector? f)
               (if-let [nested-routers (get-routers-from-query t)]
                 (let [
-                      _                (log/info "has many")
+                      _                (log/trace "has many")
                       sub-routes       (map gather-recursive nested-routers)
                       alias-routes     (filter #(:alias (meta %)) route)
                       non-alias-routes (remove #(:alias (meta %)) route)
                       true-route       (last non-alias-routes)
                       w-nested         [(concat-sub-routes true-route sub-routes)]
                       next-data        (vec (concat (into acc alias-routes) w-nested))]
-                  (log/info "non-alias routes: " non-alias-routes)
-                  (log/info "next-data : " next-data)
+                  (log/trace "non-alias routes: " non-alias-routes)
+                  (log/trace "next-data : " next-data)
                   (when (> 1 (count non-alias-routes))
                     (log/error (str "Component: " (c/component-name t) " has more than one route specified.")))
-                  ;(log/info "many: route" route)
-                  ;(log/info "many true route: " true-route)
-                  ;(log/info "many: sub-routes" sub-routes)
+                  ;(log/trace "many: route" route)
+                  ;(log/trace "many true route: " true-route)
+                  ;(log/trace "many: sub-routes" sub-routes)
                   next-data)
                 (into acc route))
               :else
@@ -465,7 +470,6 @@
       []
       router-targets)
     ))
-
 
 ;; The next step is to
 ;; support this process at runtime to register new subtrees of UI that register
