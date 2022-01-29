@@ -201,7 +201,7 @@
 
 (defmutation set-current-route-in-client-db [{:keys [current-route]}]
   (action [{:keys [state]}]
-    (swap! state assoc ::current-route current-route)))
+    (swap! state assoc ::current-route (into {} current-route))))
 
 (defn set-current-route-in-client-db! [app current-route]
   (c/transact! app [(set-current-route-in-client-db {:current-route current-route})]))
@@ -501,3 +501,7 @@
 ;; this is a source of bugs
 
 ;; support passing {:compile coercion/compile-request-coercers} when registering routes
+
+;; ---------------------
+;; make fulcro path a configurable option when starting router
+;; similarly add support for fragment URL, pass remaining options to reitit (dissoc..)
