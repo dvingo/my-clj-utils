@@ -102,14 +102,13 @@
 (defn init-router-and-state
   "Returns a map representing the state of the router.
    Constructs a new reitit router from the supplied routes and initializing state management values."
-  ([routes] (init-router-and-state routes {}))
-  ([routes opts]
-   (let [reitit-router (rf/router routes opts)]
-     {:reitit-router           reitit-router
-      :routes-by-name          (make-routes-by-name reitit-router)
-      :current-fulcro-route    []
-      :redirect-loop-count     0
-      :max-redirect-loop-count *max-redirect-loop-count*})))
+  [routes opts]
+  (let [reitit-router (rf/router routes opts)]
+    {:reitit-router           reitit-router
+     :routes-by-name          (make-routes-by-name reitit-router)
+     :current-fulcro-route    []
+     :redirect-loop-count     0
+     :max-redirect-loop-count *max-redirect-loop-count*}))
 
 (comment
   (let [routes
@@ -232,6 +231,13 @@
   (when (exists? js/location)
     (str (.-pathname js/location) (.-search js/location))))
 
+(defn match-by-path-and-coerce! [reitit-router path]
+  (when-let [match (r/match-by-path reitit-router path)]
+    (log/info "Coerce: " (:result match))
+    (-> match
+      (assoc :original-params (:parameters match))
+      (assoc :parameters (coercion/coerce! match)))))
+
 ;; Looks like the first match comes in as nil when init! is called.
 ;; read from the current url in that case.
 ;; not sure if nil is passed only if the current url doesn't match any
@@ -243,7 +249,9 @@
   (log/info "on-match called with: " m)
   (let [{:keys [reitit-router]} (router-state app)
         {:keys [path] :as m} (or m {:path (current-url-path+query)})
-        has-match? (rf/match-by-path reitit-router path)]
+
+        has-match? (match-by-path-and-coerce! reitit-router path)]
+
     (if has-match?
       (if-let [{:keys [route params]} (get-in m [:data :redirect-to])]
         (handle-redirect app route params)
@@ -271,7 +279,7 @@
   (dr/current-route app))
 
 (defn current-route-from-url [app]
-  (rf/match-by-path (router-state app :reitit-router) (current-url-path+query)))
+  (match-by-path-and-coerce! (router-state app :reitit-router) (current-url-path+query)))
 
 (defn current-route-name
   "Returns the keyword name of the current route as determined by the URL path."
@@ -478,12 +486,18 @@
 
 (>defn register-fulcro-router!
   "Takes a fulcro app and a dr/defrouter component. Gathers reitit route data from the
-  route-targets on the fulcro router and registers a reitit router within the fulcro application."
-  [app fulcro-router]
-  [(s/or :app app/fulcro-app? :var var?) dr/router? => any?]
-  (let [routes (gather-recursive fulcro-router)]
-    (log/info "Registering reitit routes: " routes)
-    (register-routes! app routes)))
+  route-targets on the fulcro router and registers a reitit router within the fulcro application.
+  Optional reitit-opts are passed through to the reitit router when it is constructed."
+  ([app fulcro-router]
+   [(s/or :app app/fulcro-app? :var var?) dr/router? => any?]
+   (register-fulcro-router! app fulcro-router {}))
+  ([app fulcro-router reitit-opts]
+   [(s/or :app app/fulcro-app? :var var?) dr/router? map? => any?]
+   (let [routes (gather-recursive fulcro-router)]
+     (log/info "Registering reitit routes: " routes)
+     (register-routes! app routes reitit-opts)))
+
+  )
 
 (defn register-and-start-router! [app routes]
   (register-routes! app routes)
