@@ -232,11 +232,20 @@
     (str (.-pathname js/location) (.-search js/location))))
 
 (defn match-by-path-and-coerce! [reitit-router path]
+  ;(log/info "match-by-path-and-coerce! path: " path)
   (when-let [match (r/match-by-path reitit-router path)]
-    (log/info "Coerce: " (:result match))
+    ;(log/info "Coerce: " (:result match))
+    ;(def match' match)
     (-> match
       (assoc :original-params (:parameters match))
       (assoc :parameters (coercion/coerce! match)))))
+
+(comment (-> match' :result :query)
+  (:result match')
+  (let [{:keys [query]} (:result match')]
+    (query match')
+    #_(coercion/coerce-request coercers match'))
+  )
 
 ;; Looks like the first match comes in as nil when init! is called.
 ;; read from the current url in that case.
@@ -248,23 +257,27 @@
   [app m]
   (log/info "on-match called with: " m)
   (let [{:keys [reitit-router]} (router-state app)
-        {:keys [path] :as m} (or m {:path (current-url-path+query)})
+        match (or m (match-by-path-and-coerce! reitit-router (current-url-path+query)))]
 
-        has-match? (match-by-path-and-coerce! reitit-router path)]
-
-    (if has-match?
+    (if match
       (if-let [{:keys [route params]} (get-in m [:data :redirect-to])]
         (handle-redirect app route params)
 
         ;; Path matched
-        (let [fulcro-segment (fulcro-segment-from-match m)
-              {:keys [parameters]} m
+        (let [fulcro-segment (fulcro-segment-from-match match)
+              {:keys [parameters]} match
+              ;; todo there are also uncoerced parameters on the reitit match under :query-params and :path-params
+              ;; which can have a non-intersecting set of keys for parameters that are not specified in the coercion
+              ;; map on the route data.
+              ;; it may be useful to merge those in as well - with the coerced ones merged in after the uncoerced.
               parameters     (merge (:path parameters) (:query parameters))]
+          (log/info "Coerced reitit match: " match)
           (log/info "Current Fulcro route: " (dr/current-route app))
-          (log/info "Invoking Fulcro change route with " fulcro-segment)
+          (log/info "Invoking Fulcro change route with " fulcro-segment " parameters: " parameters)
           (set-router-state! app :current-fulcro-route fulcro-segment)
-          (set-current-route-in-client-db! app m)
+          (set-current-route-in-client-db! app match)
           (dr/change-route! app fulcro-segment parameters)))
+
       ;; unknown page, redirect to root
       (do
         (log/info "No fulcro route matched the current URL, changing to the default route.")
