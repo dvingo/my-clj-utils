@@ -135,10 +135,13 @@
 
 (defn entity-id-for-prop
   [crux-node [attr value]]
-  (ffirst (xt/q (->db crux-node)
-            {:find  ['?e]
-             :where [['?e attr value]]
-             :args  [{'attr attr 'value value}]})))
+  (let [out
+        (xt/q
+          (->db crux-node)
+          {:find  ['?e] :where [['?e attr value]]})]
+    (println "out: " out)
+    (assert (= (count out) 1) (str "There are multiple entities with the same attr/value pair:\nattr: " (pr-str attr) "\nvalue: " (pr-str value)))
+    (ffirst out)))
 
 (comment (entity-id-for-prop crux-node [:val "1"]))
 
@@ -535,8 +538,8 @@
       (if (not (empty? subentities))
         (recur crux-node
           property
-          (vec (concat remaining subentities))              ;; new input
-          (into (mapv second subentities) output))          ;; new output
+          (vec (concat remaining subentities)) ;; new input
+          (into (mapv second subentities) output)) ;; new output
         (recur crux-node property remaining output)))))
 
 (>defn get-nested-ids
