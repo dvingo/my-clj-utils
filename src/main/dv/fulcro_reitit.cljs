@@ -428,6 +428,19 @@
     ["/:task-id/edit" {:name :edit-task :segment ["hi"]}]
     [[["/nested/another" {:name :nested :segment ["nested"]}]]]))
 
+(defn component->route-name
+  "Takes a fulcro component and return the route name found under the ::fr/route key, if there are multiple, returns the one that is not an alias
+  Returns the :name value for the underlying reitit route as defined on the passed in fulcro component."
+  [fulcro-component]
+  (assert (c/component-class? fulcro-component))
+  (let [route (::route (c/component-options fulcro-component))]
+    (assert route (str "No fulcro.reitit route on " (c/component-name fulcro-component)))
+    (if (string? (first route))
+      (-> route second :name)
+      (let [first-non-alias (first (remove #(:alias (meta %)) route))]
+        (assert first-non-alias (str "You have multiple routes defined on " (c/component-name fulcro-component) " but none that is not an alias."))
+        (-> first-non-alias second :name)))))
+
 (defn gather-recursive
   [fulcro-router]
   ;; for each target, if it contains a router in its query
