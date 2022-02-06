@@ -140,7 +140,7 @@
           (->db crux-node)
           {:find  ['?e] :where [['?e attr value]]})]
     (println "out: " out)
-    (assert (= (count out) 1) (str "There are multiple entities with the same attr/value pair:\nattr: " (pr-str attr) "\nvalue: " (pr-str value)))
+    (assert (<= (count out) 1) (str "There are multiple entities with the same attr/value pair:\nattr: " (pr-str attr) "\nvalue: " (pr-str value)))
     (ffirst out)))
 
 (comment (entity-id-for-prop crux-node [:val "1"]))
