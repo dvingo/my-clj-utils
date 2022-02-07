@@ -150,6 +150,9 @@
   [app]
   (-> app (router-state :reitit-router) (r/routes)))
 
+(defn reitit-router "Returns the reitit router that handles routing for the passed in fulcro application."
+  [app] (router-state app :reitit-router))
+
 (defn route-segment
   [app name]
   (if-let [segment (some-> app (router-state :routes-by-name) name :segment)]
@@ -178,13 +181,15 @@
   [::comp-or-app => vector?]
   (-> (c/any->app app) router-state :current-fulcro-route))
 
-;; todo support query-params also, by merging
-
 (s/def ::fulcro-route-segment (s/or :string string? :kw simple-keyword?))
 
 (defn fulcro-segment-from-match
-  [{:keys [path-params query-params] :as m}]
-  (let [fulcro-segments (construct-fulcro-segments m)
+  "Returns a fulcro segment (vector of strings and data).
+  Replaces dynamic :keyword parts of a fulcro segment with the corresponding values from the reitit match. Uses the
+  coerced values if present instead of the string values."
+  [{:keys [path-params query-params parameters] :as m}]
+  (let [{path-parameters :path query-parameters :query} parameters
+        fulcro-segments (construct-fulcro-segments m)
         ;; fill in any dynamic path segments with their values from the reitit match
         target-segment  (->> fulcro-segments
                           (mapv (fn [part]
@@ -193,7 +198,7 @@
                                                         "\n\nRoute is: " (:data m)
                                                         ".\n\nIt should be a keyword or string (or a function that returns one of these).\n"))))
                                   (if (keyword? part)
-                                    (or (part path-params) (part query-params))
+                                    (or (part path-parameters) (part query-parameters) (part path-params) (part query-params))
                                     part))))]
     (log/info "Target segment: " target-segment)
     target-segment))
@@ -266,11 +271,8 @@
         ;; Path matched
         (let [fulcro-segment (fulcro-segment-from-match match)
               {:keys [parameters]} match
-              ;; todo there are also uncoerced parameters on the reitit match under :query-params and :path-params
-              ;; which can have a non-intersecting set of keys for parameters that are not specified in the coercion
-              ;; map on the route data.
-              ;; it may be useful to merge those in as well - with the coerced ones merged in after the uncoerced.
-              parameters     (merge (:path parameters) (:query parameters))]
+              ;; coerced parameters (if present) override the uncoerced ones
+              parameters     (merge (:path-params match) (:query-params match) (:path parameters) (:query parameters))]
           (log/info "Coerced reitit match: " match)
           (log/info "Current Fulcro route: " (dr/current-route app))
           (log/info "Invoking Fulcro change route with " fulcro-segment " parameters: " parameters)
