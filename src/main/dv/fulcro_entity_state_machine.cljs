@@ -3,6 +3,7 @@
     [clojure.spec.alpha :as s]
     [com.fulcrologic.fulcro.algorithms.form-state :as fs]
     [com.fulcrologic.fulcro.algorithms.merge :as merge]
+    [com.fulcrologic.fulcro.application :as app]
     [com.fulcrologic.fulcro.components :as c]
     [com.fulcrologic.fulcro.components :as comp :refer [defsc]]
     [com.fulcrologic.fulcro.mutations :as m :refer [defmutation]]
@@ -151,17 +152,19 @@
   (when (and remote-mutation mutation)
     (throw (fu/error "You can only pass a mutation or a remote-mutation, but not both.")))
   ;(log/info "submit-entity! state:" (sm/get-active-state this machine))
-  (sm/trigger! this machine :event/submit
-    (cond->
-      {:entity            entity
-       :on-reset          on-reset
-       :on-reset-mutation on-reset-mutation
-       :on-success        on-success
-       :target            target
-       :target-xform      target-xform
-       :creating?         creating?}
-      remote-mutation (assoc :remote-mutation remote-mutation)
-      mutation (assoc :mutation mutation))))
+  (let [machine-in-db (get-in (app/current-state this) [::sm/asm-id machine])]
+    (when (nil? machine-in-db) (throw (js/Error. (str "No machine in fulcro db with ID: " machine "\nDid you forget to start it?"))))
+    (sm/trigger! this machine :event/submit
+      (cond->
+        {:entity            entity
+         :on-reset          on-reset
+         :on-reset-mutation on-reset-mutation
+         :on-success        on-success
+         :target            target
+         :target-xform      target-xform
+         :creating?         creating?}
+        remote-mutation (assoc :remote-mutation remote-mutation)
+        mutation (assoc :mutation mutation)))))
 
 (defn begin! [this id new-entity]
   (log/info "starting form machine with new entity: " new-entity)
