@@ -199,7 +199,7 @@
           error-message)))))
 
 (defn mark-fields-complete*
-  "
+  "Invokes fulcro.form-state/mark-complete on the collection of fields passed in.
   - state map
   - ident of component
   - seq of fields to mark complete"
@@ -434,13 +434,14 @@
         rows))))
 
 (defn props-data-debug
-  "show table of fields for a component with value ."
-  [com show?]
+  "show table of fields for a component with value.
+  this: fulcro component"
+  [this show?]
   (when show?
-    (let [props (c/props com)]
+    (let [props (c/props this)]
       (when (some? props)
-        (let [ident     (c/get-ident com props)
-              prop-keys (get-props-keys com)
+        (let [ident     (c/get-ident this props)
+              prop-keys (get-props-keys this)
               rows      (map #(vector % (get props %)) prop-keys)]
           (dom/div nil
             (dom/h2 {:key "first"} "ident: " (pr-str ident))
@@ -458,11 +459,12 @@
         (dom/h4 :.ui.violet.message (str "Form fields for " (pr-str form-ident) ":"))
         (dom/table :.ui.celled.table.striped.yellow
           (dom/thead
-            (dom/tr (dom/th "field") (dom/th "value") (dom/th "valid state")))
+            (dom/tr (dom/th "field") (dom/th "dirty?") (dom/th "value") (dom/th "valid state")))
           (dom/tbody
-            (dom/tr {:key "all"} (dom/td "Entire form") (dom/td "n/a") (dom/td (pr-str (validator props))))
+            (dom/tr {:key "all"} (dom/td "Entire form") (dom/td (pr-str (fs/dirty? props))) (dom/td "n/a") (dom/td (pr-str (validator props))))
             (map #(dom/tr {:key (str %)}
                     (dom/td (str %))
+                    (dom/td (pr-str (fs/dirty? props %)))
                     (dom/td (pr-str (props %)))
                     (dom/td (pr-str (validator props %))))
               form-fields)))))))

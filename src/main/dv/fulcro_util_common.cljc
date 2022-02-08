@@ -101,7 +101,7 @@
 (defn server-error [msg]
   {:server/message msg
    :server/error?  true})
-(>def ::ident (s/tuple qualified-keyword? id?))
+(>def ::ident (s/tuple qualified-keyword? (? id?)))
 (>def ::coll-of-idents (s/coll-of ::ident :kind vector?))
 (defn coll-of-idents? [v] (s/valid? ::coll-of-idents v))
 
@@ -116,6 +116,13 @@
 
 ;; spec for: [prop val]
 
+
+(defn props
+  "Delegates to fulcro.component/props, but takes options kw to get a single properties value."
+  ([this] (c/props this))
+  ([this prop] (get (c/props this) prop))
+  ([this prop missing-val] (get (c/props this) prop missing-val)))
+
 (defn ref?
   "Return true if v is an ident
   if you pass kw-id the first element of v must by kw-id."
@@ -127,12 +134,12 @@
 (>defn ->ident
   "Given a kw that is the id prop, and a map or id, return ident."
   ([kw]
-   [keyword? => fn?]
+   [(? keyword?) => fn?]
    (fn
      ([m] (->ident kw m))
      ([id v] (conj (->ident kw id) v))))
   ([kw v]
-   [keyword? (s/or :id id? :m map? :ident ::ident) => ::ident]
+   [(? keyword?) (s/or :nil nil? :id id? :m map? :ident ::ident) => ::ident]
    (if (ref? kw v)
      v
      [kw (if (map? v) (kw v) v)])))
