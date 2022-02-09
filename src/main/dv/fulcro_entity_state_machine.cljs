@@ -174,3 +174,8 @@
   (sm/begin! this form-machine id
     {:actor/form     this
      :actor/new-item new-entity}))
+
+(def query
+  [:server/message
+   :ui/machine-state
+   :ui/loading?])
