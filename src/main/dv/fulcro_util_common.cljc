@@ -101,8 +101,8 @@
 (defn server-error [msg]
   {:server/message msg
    :server/error?  true})
-(>def ::ident (s/tuple qualified-keyword? (? id?)))
-(>def ::coll-of-idents (s/coll-of ::ident :kind vector?))
+(s/def ::ident (s/tuple qualified-keyword? (? id?)))
+(s/def ::coll-of-idents (s/coll-of ::ident :kind vector?))
 (defn coll-of-idents? [v] (s/valid? ::coll-of-idents v))
 
 (defn ident?
