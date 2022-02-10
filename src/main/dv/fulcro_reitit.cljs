@@ -296,6 +296,9 @@
 (defn current-route-from-url [app]
   (match-by-path-and-coerce! (router-state app :reitit-router) (current-url-path+query)))
 
+(defn current-reitit-route [app]
+  (get (app/current-state app) ::current-route))
+
 (defn current-route-name
   "Returns the keyword name of the current route as determined by the URL path."
   [app]
@@ -547,3 +550,33 @@
 ;; ---------------------
 ;; make fulcro path a configurable option when starting router
 ;; similarly add support for fragment URL, pass remaining options to reitit (dissoc..)
+
+
+;{:malli/schema [:=> [:cat ]]}
+(defn will-enter
+  [f]
+  (fn will-enter [app args]
+    (let [current-route (current-route-from-url app)
+          ;; idea is to pull out the coerced params and retrieve their values and pass them by associng onto args
+          ;(which is a map) the client code will receive the coerced values
+          {{:keys [query path]} :parameters} current-route
+          new-args      (assoc args :query query :path path)
+          new-args      (merge args (select-keys query (keys args)) (select-keys path (keys args)))
+
+          ;; goal: get the keys in args and extract them from either query or path - need to specify what happens
+          ;; if the same key is in the query and in the path - which value wins? - probably the path
+          ;; because that's what determines routing via a path, so if it is incorrect when downstream code expects it
+          ;; to be a path value. - oh, you could attach ::fr/query as part of the args to will-enter and this way
+          ;; the client code can do what it wants to change the default behavior
+          ]
+
+      (def cur' current-route)
+      (def args' args)
+      (log/info "in will enter: " args)
+      (log/info "current-route: " current-route)
+      (log/info "returning new args: " new-args)
+      (f app new-args)))
+  ;;
+  ;; idea is to use the
+
+  )
