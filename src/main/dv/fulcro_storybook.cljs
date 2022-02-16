@@ -43,6 +43,7 @@
 
 (defn make-story
   [cls]
+  (assert (c/component-class? cls))
   (let [Root    (make-root cls)
         new-cls (r/create-class
                   {:component-did-mount

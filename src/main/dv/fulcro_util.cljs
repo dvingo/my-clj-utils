@@ -144,7 +144,8 @@
 (comment (re-matches email-regex "HI@HI.com"))
 
 (defn ^boolean valid-email? [email]
-  (boolean (re-matches email-regex email)))
+  (and (string? email)
+    (boolean (re-matches email-regex email))))
 
 (comment (valid-email? "1230HI@HI.com"))
 

@@ -1,13 +1,14 @@
 (ns dv.fulcro-storybook
   (:require
     [clojure.string :as str]
+    [com.fulcrologic.fulcro.components :as c]
     [clojure.spec.alpha :as s]))
 
 (s/def ::args (s/cat :name (s/? symbol?) :forms (s/+ any?)))
 
 (defn fulcro-component* [component-name body]
   (let [dummy-prop (keyword (str (gensym)) (str (gensym)))]
-    `(~'defsc ~component-name [~'_ ~'_]
+    `(c/defsc ~component-name [~'_ ~'_]
        {:query         [~dummy-prop]
         :initial-state {~dummy-prop nil}}
        ~@body)))
@@ -28,7 +29,7 @@
 
 (defn fulcro-component2* [component-name body]
   (let [dummy-prop (keyword (str (gensym)) (str (gensym)))]
-    `(~'defsc ~component-name [~'_ ~'_]
+    `(c/defsc ~component-name [~'_ ~'_]
        {:query         [~dummy-prop]
         :initial-state {~dummy-prop nil}}
        ~body)))
