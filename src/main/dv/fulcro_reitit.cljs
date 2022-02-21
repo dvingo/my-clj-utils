@@ -554,6 +554,8 @@
 
 ;{:malli/schema [:=> [:cat ]]}
 (defn will-enter
+  "Takes a will-enter function as expected for use in fulcro routing, but replaces any parameters in the second argument
+  with their coerced values from the current route match if those parameters are present."
   [f]
   (fn will-enter [app args]
     (let [current-route (current-route-from-url app)
